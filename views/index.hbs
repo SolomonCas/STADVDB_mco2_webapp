@@ -23,22 +23,23 @@
     <div>
         <!-- checkbox for delete -->
         <!-- Tabular view of the database -->
-        <table class="table table-striped" id="movies_table">
+        <table class="table table-striped" id="movies_table" style="width:100%">
             <thead>
                 <tr>
-                <th></th>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Year</th>
-                <th>Rank</th>
-                <th>Genre</th>
-                <th>Director First Name</th>
-                <th>Director Last Name</th>
+                    <th></th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Year</th>
+                    <th>Rank</th>
+                    <th>Genre</th>
+                    <th>Director First Name</th>
+                    <th>Director Last Name</th>
                 </tr>
             </thead>
             
             <!-- For each movies -->
-            <!-- <tr> 
+            <tbody>
+            {{!-- <tr> 
                 <td><input form="delete" name="delete_row" th:value="ID" type="radio"></td>
                 <td>1</td>
                 <td>Transformer</td>
@@ -47,12 +48,24 @@
                 <td>Action</td>
                 <td>Michael</td>
                 <td>Bay</td>
-            </tr> -->
-            <tbody>
+            </tr> --}}
                 {{#each movies}}
                     {{> movierows this}}
                 {{/each}}
             </tbody>
+
+            <tfoot>
+                <tr>
+                    <th></th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Year</th>
+                    <th>Rank</th>
+                    <th>Genre</th>
+                    <th>Director First Name</th>
+                    <th>Director Last Name</th>
+                </tr>
+            </tfoot>
         </table>
         <button id="delete_submit" type="submit">Delete</button>
     </div>

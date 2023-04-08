@@ -8,8 +8,10 @@ const app = express();
 app.engine("hbs", exphbs.engine({extname: 'hbs', partialsDir: __dirname + '/views/partial/'}));
 app.set('view engine', 'hbs');
 
+app.use(express.static('public'));
+
 app.get('/', (req, res) => {
-  mysqlConnection.query('SELECT * FROM node1.movies', (err, rows, fields) => {
+  mysqlConnection.query('SELECT * FROM node1.movies WHERE id < 100', (err, rows, fields) => {
     if (err) {
       console.error('Error querying MySQL database: ' + err.stack);
       res.status(500).send('Error querying MySQL database');
