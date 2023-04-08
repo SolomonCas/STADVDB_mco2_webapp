@@ -3,7 +3,7 @@ const mysql = require('mysql2');
 dotenv.config();
 
 const connection = mysql.createConnection({
-  host: "localhost",
+  host: "172.16.3.127/24",
   user: "root",
   password: "123"
 });
