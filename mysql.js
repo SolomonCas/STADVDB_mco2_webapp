@@ -4,6 +4,7 @@ dotenv.config();
 
 const connection = mysql.createConnection({
   host: "Cloud09-Server0",
+  port: "38027"
   user: "root",
   password: "123"
 });
