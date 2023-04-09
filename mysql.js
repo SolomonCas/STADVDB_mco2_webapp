@@ -3,7 +3,7 @@ const mysql = require('mysql2');
 dotenv.config();
 
 const connection = mysql.createConnection({
-  host: "ccscloud3.dlsu.edu.ph",
+  host: "Cloud09-Server0",
   port: "38027",
   user: "root",
   password: "123"
