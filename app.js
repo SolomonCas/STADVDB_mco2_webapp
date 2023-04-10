@@ -24,6 +24,6 @@ app.get('/', (req, res) => {
   });
 });
 
-app.listen(38028, hostname, () => {
-  console.log('Node.js server running on port ccscloud3.dlsu.edu.ph:38028');
+app.listen(80, () => {
+  console.log('Node.js server running on port 80');
 });
