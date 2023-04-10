@@ -23,6 +23,6 @@ app.get('/', (req, res) => {
   });
 });
 
-app.listen(3000, () => {
-  console.log('Node.js server running on port 3000');
+app.listen(80, () => {
+  console.log('Node.js server running on port 80');
 });
