@@ -2,23 +2,25 @@
     <div>
         <!-- Searc bar -->
         <!-- input number (year, ID, Rank), select if ==, <, >, >=, <= -->
-        <form action="">
+        <form action="/filter/1" method="post">
             <Label>Filter</Label>
-            <input type="number" name="filter_input" id="">
-            <select name="operator" id="">
-                <option value="e">==</option>
-                <option value="lt">&lt</option>
-                <option value="gt">&gt</option>
-                <option value="lte">&le;</option>
-                <option value="gte">&ge;</option>
-            </select>
-            <select name="attribute" id="">
+            <select name="attribute" id="attribute">
                 <option value="Year">Year</option>
                 <option value="ID">ID</option>
                 <option value="Rank">Rank</option>
             </select>
+            <select name="operator" id="operator">
+                <option value="=">==</option>
+                <option value="<">&lt</option>
+                <option value=">">&gt</option>
+                <option value="<=">&le;</option>
+                <option value=">=">&ge;</option>
+            </select>
+            <input type="number" step="0.1" name="filter_input" id="" required>
+            
             <button id="filter_submit" type="submit">Filter</button>
         </form>
+        <button id="clear_filter">Clear Filter</button>
     </div>
     <div>
         <!-- checkbox for delete -->
@@ -68,8 +70,12 @@
                     </tr>
                 </tfoot>
             </table>
-            <button form="delete" id="delete_submit" type="submit">Delete</button>
+            <button form="delete" id="delete_submit" type="submit" disabled>Delete</button>
         </form>
+        
+        <p><span id="page">{{current_page}}</span> / <span id="total">{{total_pages}}</span></p>
+        <button id="prev_page">Previous</button>
+        <button id="next_page">Next</button>
     </div>
     <div>
         <!-- Insert -->
@@ -108,7 +114,7 @@
             <input type="text" name="update_director_first_name" id="update_director_first_name" >
             <label for="update_director_last_name">Director Last Name</label>
             <input type="text" name="update_director_last_name" id="update_director_last_name" >
-            <button form="update" id="update_submit" type="submit"> Submit </button>
+            <button form="update" id="update_submit" type="submit" disabled> Submit </button>
         </form>
     </div>
 </body>

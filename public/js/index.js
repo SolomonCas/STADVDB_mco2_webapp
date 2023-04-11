@@ -1,6 +1,22 @@
 $(document).ready(function () {
 	console.log("Document Ready");
-	$('#movies_table').DataTable();
+    var page = parseInt($('#page').html());
+    var total = parseInt($('#total').html());
+    if(page == 1){
+        $('#prev_page').prop('disabled', true);
+        $('#next_page').prop('disabled', false);
+    }
+    if(total == 1){
+        $('#next_page').prop('disabled', true);
+        $('#prev_page').prop('disabled', true);
+    }
+    else if(page == total){
+        $('#next_page').prop('disabled', true);
+        $('#prev_page').prop('disabled', false);
+    }
+
+
+    
 
 	$('.selected_row').on('click', (function () {
 		const parentTr = $(this).closest('tr');
@@ -14,6 +30,9 @@ $(document).ready(function () {
 			director_last_name: parentTr.find('td').eq(7).text()
 		}
 
+        $('#delete_submit').prop('disabled', false);
+        $('#update_submit').prop('disabled', false);
+
 		$('#update_id').val(selected_row.id);
 		$('#update_name').val(selected_row.name);
 		$('#update_year').val(selected_row.year);
@@ -23,5 +42,30 @@ $(document).ready(function () {
 		$('#update_director_last_name').val(selected_row.director_last_name);
 
 	}));
+    
+    $('#next_page').on('click', function(){
+        page++;
+        if(window.location.href.includes("filter")){
+            window.location.href = "/filter/" + page;
+        }
+        else{
+            window.location.href = "/" + page;
+        }
+        
+    });
 
+    $('#prev_page').on('click', function(){
+        page--;
+        if(window.location.href.includes("filter")){
+            window.location.href = "/filter/" + page;
+        }
+        else{
+            window.location.href = "/" + page;
+        }
+        
+    });
+    
+    $('#clear_filter').on('click', function(){
+        window.location.href = "/";
+    });
 });
