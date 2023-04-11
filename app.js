@@ -29,14 +29,14 @@ app.get('/', (req, res) => {
 app.post('/insert', (req, res) => {
 	const { name, year, rank, genre, director_first_name, director_last_name } = req.body;
 
-	mysqlConnection.query(`SELECT max(id) + 1 AS new FROM movies`, (err, res) => {
+	mysqlConnection.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
 		if (err) {
 			console.error('Error querying MySQL database: ' + err.stack);
 			res.status(500).send('Error querying MySQL database');
 			return;
 		}
 		else {
-			new_id = res[0].new;
+			new_id = resp[0].new;
 			console.log("new_id: " + new_id);
 			mysqlConnection.query(`INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${new_id}, '${name}', ${year}, ${rank}, '${genre}', '${director_first_name}', '${director_last_name}')`, (err, results) => {
 				if (err) {
@@ -45,12 +45,13 @@ app.post('/insert', (req, res) => {
 					return;
 				}
 				else {
-					console.log("Successfully Inserted Data")
+					console.log("Successfully Inserted Data");
+					res.redirect('/');
 				}
 			})
 		}
 	});
-	res.redirect('/');
+	
 });
 
 app.post('/update', async (req, res) => {
