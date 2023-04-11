@@ -57,7 +57,9 @@ app.post('/insert', (req, res) => {
 app.post('/update', async (req, res) => {
 
 	const movie = req.body;
-	const statement = 'UPDATE movies SET name=?, year=?, `rank`=?, genre=?, director_first_name=?, director_last_name=? WHERE id=?';
+	const statement = `UPDATE movies SET name = COALESCE(NULLIF(?, ''), name), year = COALESCE(NULLIF(?, ''), year), \`rank\` = COALESCE(NULLIF(?, ''), \`rank\`), genre = COALESCE(NULLIF(?, ''), genre), director_first_name = COALESCE(NULLIF(?, ''), director_first_name), director_last_name = COALESCE(NULLIF(?, ''), director_last_name) WHERE id = ?`;
+
+	
 	const values = [movie.update_name, movie.update_year, movie.update_rank, movie.update_genre, movie.update_director_first_name, movie.update_director_last_name, movie.update_id];
 
 	mysqlConnection.query(statement, values, (err, rows, fields) => {
