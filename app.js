@@ -92,7 +92,7 @@ app.post('/filter/:page', (req, res) => {
 });
 
 app.post('/insert', (req, res) => {
-	const { name, year, rank, genre, director_first_name, director_last_name } = req.body;
+	const movie = req.body;
 
 	mysqlConnection.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
 		if (err) {
@@ -103,7 +103,11 @@ app.post('/insert', (req, res) => {
 		else {
 			new_id = resp[0].new;
 			console.log("new_id: " + new_id);
-			mysqlConnection.query(`INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${new_id}, '${name}', ${year}, ${rank}, '${genre}', '${director_first_name}', '${director_last_name}')`, (err, results) => {
+			
+			const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+			const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
+			
+			mysqlConnection.query(statement, values, (err, results) => {
 				if (err) {
 					console.error('Error querying MySQL database: ' + err.stack);
 					res.status(500).send('Error querying MySQL database');
