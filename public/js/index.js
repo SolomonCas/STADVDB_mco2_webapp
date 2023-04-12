@@ -48,6 +48,9 @@ $(document).ready(function () {
         if(window.location.href.includes("filter")){
             window.location.href = "/filter/" + page;
         }
+        else if(window.location.href.includes("search")){
+            window.location.href = "/search/" + page;
+        }
         else{
             window.location.href = "/" + page;
         }
@@ -58,6 +61,9 @@ $(document).ready(function () {
         page--;
         if(window.location.href.includes("filter")){
             window.location.href = "/filter/" + page;
+        }
+        else if(window.location.href.includes("search")){
+            window.location.href = "/search/" + page;
         }
         else{
             window.location.href = "/" + page;

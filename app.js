@@ -5,9 +5,9 @@ const exphbs = require('express-handlebars');
 const hostname = '172.16.3.128'; // for node2
 
 const app = express();
-var operator;
-var attribute;
-var input;
+var filter_operator;
+var filter_attribute, search_attribute;
+var filter_input, search_input;
 
 app.engine("hbs", exphbs.engine({ extname: 'hbs', partialsDir: __dirname + '/views/partial/' }));
 app.set('view engine', 'hbs');
@@ -20,33 +20,37 @@ app.get('/', (req, res) => {
 });
 
 app.get('/:page', (req, res) => {
-	const page = parseInt(req.params.page);
-    const recordsPerPage = 10; // Set the number of records per page
-
-    // Retrieve the total number of records in the database table
-    mysqlConnection.query('SELECT COUNT(*) AS total FROM movies', (err, result) => {
-        if (err) throw err;
-        const totalRecords = result[0].total;
-
-        // Calculate the total number of pages
-        const totalPages = Math.ceil(totalRecords / recordsPerPage);
-
-        // Calculate the offset for the SQL query based on the current page
-        const offset = (page - 1) * recordsPerPage;
-
-        // Retrieve the data for the current page
-        mysqlConnection.query('SELECT * FROM movies LIMIT ? OFFSET ?', [recordsPerPage, offset], (err, results) => {
-            if (err) throw err;
-            res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-        });
-    });
+	if (req.params.page === 'favicon.ico') {
+		res.status(204).end(); // return a "no content" response
+	} else {
+		const page = parseInt(req.params.page);
+		const recordsPerPage = 10; // Set the number of records per page
+	
+		// Retrieve the total number of records in the database table
+		mysqlConnection.query('SELECT COUNT(*) AS total FROM movies', (err, result) => {
+			if (err) throw err;
+			const totalRecords = result[0].total;
+	
+			// Calculate the total number of pages
+			const totalPages = Math.ceil(totalRecords / recordsPerPage);
+	
+			// Calculate the offset for the SQL query based on the current page
+			const offset = (page - 1) * recordsPerPage;
+			// Retrieve the data for the current page
+			mysqlConnection.query('SELECT * FROM movies LIMIT ? OFFSET ?', [recordsPerPage, offset], (err, results) => {
+				if (err) throw err;
+				res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+			});
+		});
+	}
+	
 });
 
 app.get('/filter/:page', (req, res) => {
 	const page = parseInt(req.params.page);
     const recordsPerPage = 10; // Set the number of records per page
     // Retrieve the total number of records in the database table
-    mysqlConnection.query(`SELECT COUNT(*) AS total FROM movies WHERE ${attribute} ${operator} ${input}`, (err, result) => {
+    mysqlConnection.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
         if (err) throw err;
         const totalRecords = result[0].total;
 
@@ -57,7 +61,7 @@ app.get('/filter/:page', (req, res) => {
         const offset = (page - 1) * recordsPerPage;
 
         // Retrieve the data for the current page
-        mysqlConnection.query(`SELECT * FROM movies WHERE ${attribute} ${operator} ${input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+        mysqlConnection.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
             if (err) throw err;
             res.render('index', { movies: results, current_page: page, total_pages: totalPages});
         });
@@ -69,9 +73,9 @@ app.post('/filter/:page', (req, res) => {
 	const filter = req.body;
 	const page = parseInt(req.params.page);
     const recordsPerPage = 10; // Set the number of records per page
-	operator = filter.operator;
-	attribute = filter.attribute;
-	input = filter.filter_input;
+	filter_operator = filter.operator;
+	filter_attribute = filter.attribute;
+	filter_input = filter.filter_input;
     // Retrieve the total number of records in the database table
     mysqlConnection.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter.attribute} ${filter.operator} ${filter.filter_input}`, (err, result) => {
         if (err) throw err;
@@ -90,6 +94,54 @@ app.post('/filter/:page', (req, res) => {
         });
     });
 });
+
+app.get('/search/:page', (req, res) => {
+	const page = parseInt(req.params.page);
+    const recordsPerPage = 10; // Set the number of records per page
+    // Retrieve the total number of records in the database table
+    mysqlConnection.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
+        if (err) throw err;
+        const totalRecords = result[0].total;
+
+        // Calculate the total number of pages
+        const totalPages = Math.ceil(totalRecords / recordsPerPage);
+
+        // Calculate the offset for the SQL query based on the current page
+        const offset = (page - 1) * recordsPerPage;
+
+        // Retrieve the data for the current page
+        mysqlConnection.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+            if (err) throw err;
+            res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+        });
+    });
+});
+
+app.post('/search/:page', (req, res) => {
+	const search = req.body;
+	const page = parseInt(req.params.page);
+    const recordsPerPage = 10; // Set the number of records per page
+	search_attribute = search.attribute;
+	search_input = search.search_input;
+    // Retrieve the total number of records in the database table
+    mysqlConnection.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute}`, (err, result) => {
+        if (err) throw err;
+        const totalRecords = result[0].total;
+
+        // Calculate the total number of pages
+        const totalPages = Math.ceil(totalRecords / recordsPerPage);
+
+        // Calculate the offset for the SQL query based on the current page
+        const offset = (page - 1) * recordsPerPage;
+
+        // Retrieve the data for the current page
+        mysqlConnection.query(`SELECT * FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+            if (err) throw err;
+            res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+        });
+    });
+});
+
 
 app.post('/insert', (req, res) => {
 	const movie = req.body;

@@ -1,12 +1,24 @@
 <body>
     <div>
-        <!-- Searc bar -->
+        <!-- Search bar -->
+        <form action="/search/1" method="post">
+            <Label>Search</Label>
+            <select name="attribute" id="attribute">
+                <option value="name">Name</option>
+                <option value="genre">Genre</option>
+                <option value="director_first_name">Director First Name</option>
+                <option value="director_last_name">Director Last Name</option>
+            </select>
+            <input type="text" name="search_input" id="search_input" required>
+            
+            <button id="search_submit" type="submit">Search</button>
+        </form>
         <!-- input number (year, ID, Rank), select if ==, <, >, >=, <= -->
         <form action="/filter/1" method="post">
             <Label>Filter</Label>
             <select name="attribute" id="attribute">
-                <option value="Year">Year</option>
-                <option value="ID">ID</option>
+                <option value="year">Year</option>
+                <option value="id">ID</option>
                 <option value="`rank`">Rank</option>
             </select>
             <select name="operator" id="operator">
