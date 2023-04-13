@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mysqlConnection = require('./mysql');
 const exphbs = require('express-handlebars');
-const hostname = '172.16.3.128'; // for node2
 
 const app = express();
 var filter_operator;
