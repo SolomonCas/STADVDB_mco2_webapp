@@ -1,110 +1,132 @@
 <body>
     <div>
-        <!-- Searc bar -->
+        <!-- Search bar -->
+        <form action="/search/1" method="post">
+            <Label>Search</Label>
+            <select name="attribute" id="attribute">
+                <option value="name">Name</option>
+                <option value="genre">Genre</option>
+                <option value="director_first_name">Director First Name</option>
+                <option value="director_last_name">Director Last Name</option>
+            </select>
+            <input type="text" name="search_input" id="search_input" required>
+            
+            <button id="search_submit" type="submit">Search</button>
+        </form>
         <!-- input number (year, ID, Rank), select if ==, <, >, >=, <= -->
-        <form action="">
+        <form action="/filter/1" method="post">
             <Label>Filter</Label>
-            <input type="number" name="filter_input" id="">
-            <select name="operator" id="">
-                <option value="e">==</option>
-                <option value="lt">&lt</option>
-                <option value="gt">&gt</option>
-                <option value="lte">&le;</option>
-                <option value="gte">&ge;</option>
+            <select name="attribute" id="attribute">
+                <option value="year">Year</option>
+                <option value="id">ID</option>
+                <option value="`rank`">Rank</option>
             </select>
-            <select name="attribute" id="">
-                <option value="Year">Year</option>
-                <option value="ID">ID</option>
-                <option value="Rank">Rank</option>
+            <select name="operator" id="operator">
+                <option value="=">==</option>
+                <option value="<">&lt</option>
+                <option value=">">&gt</option>
+                <option value="<=">&le;</option>
+                <option value=">=">&ge;</option>
             </select>
+            <input type="number" step="0.1" name="filter_input" id="" required>
+            
             <button id="filter_submit" type="submit">Filter</button>
         </form>
+        <button id="clear_filter">Clear Filter</button>
     </div>
     <div>
         <!-- checkbox for delete -->
         <!-- Tabular view of the database -->
-        <table class="table table-striped" id="movies_table" style="width:100%">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Year</th>
-                    <th>Rank</th>
-                    <th>Genre</th>
-                    <th>Director First Name</th>
-                    <th>Director Last Name</th>
-                </tr>
-            </thead>
-            
-            <!-- For each movies -->
-            <tbody>
-            {{!-- <tr> 
-                <td><input form="delete" name="delete_row" th:value="ID" type="radio"></td>
-                <td>1</td>
-                <td>Transformer</td>
-                <td>2010</td>
-                <td>5.0</td>
-                <td>Action</td>
-                <td>Michael</td>
-                <td>Bay</td>
-            </tr> --}}
-                {{#each movies}}
-                    {{> movierows this}}
-                {{/each}}
-            </tbody>
+        <form id="delete" action="/delete" method="POST">
+            <table class="table table-striped" id="movies_table" style="width:100%">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Year</th>
+                        <th>Rank</th>
+                        <th>Genre</th>
+                        <th>Director First Name</th>
+                        <th>Director Last Name</th>
+                    </tr>
+                </thead>
+                
+                <!-- For each movies -->
+                <tbody>
+                {{!-- <tr> 
+                    <td><input form="delete" name="delete_row" th:value="ID" type="radio"></td>
+                    <td>1</td>
+                    <td>Transformer</td>
+                    <td>2010</td>
+                    <td>5.0</td>
+                    <td>Action</td>
+                    <td>Michael</td>
+                    <td>Bay</td>
+                </tr> --}}
+                    {{#each movies}}
+                        {{> movierows this}}
+                    {{/each}}
+                </tbody>
 
-            <tfoot>
-                <tr>
-                    <th></th>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Year</th>
-                    <th>Rank</th>
-                    <th>Genre</th>
-                    <th>Director First Name</th>
-                    <th>Director Last Name</th>
-                </tr>
-            </tfoot>
-        </table>
-        <button id="delete_submit" type="submit">Delete</button>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Year</th>
+                        <th>Rank</th>
+                        <th>Genre</th>
+                        <th>Director First Name</th>
+                        <th>Director Last Name</th>
+                    </tr>
+                </tfoot>
+            </table>
+            <button form="delete" id="delete_submit" type="submit" disabled>Delete</button>
+        </form>
+        
+        <p><span id="page">{{current_page}}</span> / <span id="total">{{total_pages}}</span></p>
+        <button id="prev_page">Previous</button>
+        <button id="next_page">Next</button>
     </div>
     <div>
         <!-- Insert -->
         <h2>Insert</h2>
-        <form id="movie_forms" action="" method="post">
+        <form id="movie_forms" action="/insert" method="post">
             <label for="">Movie Name</label>
             <input type="text" name="name" id="" required>
             <label for="">Year</label>
             <input type="number" name="year" id="" required>
             <label for="">Rank</label>
-            <input type="number" name="rank" id="" required>
-            <label for="">Genre</label>
-            <input type="text" name="genre" id="" required> 
-            <label for="">Director First Name</label>
-            <input type="text" name="director_first_name" id="" required>
-            <label for="">Director Last Name</label>
-            <input type="text" name="director_last_name" id="" required>
-            <button id="insert_submit" type="submit"> Submit </button>
-        </form>
-    </div>
-    <div>
-        <!-- Update -->
-        <h2>Update</h2>
-        <form id="movie_forms" action="" method="post">
-            <label for="">Movie Name</label>
-            <input type="text" name="name" id="" >
-            <label for="">Year</label>
-            <input type="text" name="year" id="" >
-            <label for="">Rank</label>
-            <input type="text" name="rank" id="" >
+            <input type="number" step="0.1" name="rank" id="" >
             <label for="">Genre</label>
             <input type="text" name="genre" id="" > 
             <label for="">Director First Name</label>
             <input type="text" name="director_first_name" id="" >
             <label for="">Director Last Name</label>
             <input type="text" name="director_last_name" id="" >
-            <button id="update_submit" type="submit"> Submit </button>
+            <button id="insert_submit" type="submit"> Submit </button>
+        </form>
+    </div>
+    <div>
+        <!-- Update -->
+        <h2>Update</h2>
+        <form id="update" action="/update" method="post">
+            <label for="update_id">ID</label>
+            <input type="text" name="update_id" id="update_id" readonly>
+            <label for="update_name">Movie Name</label>
+            <input type="text" name="update_name" id="update_name" >
+            <label for="update_year">Year</label>
+            <input type="number" name="update_year" id="update_year" >
+            <label for="update_rank">Rank</label>
+            <input type="number" step="0.1" name="update_rank" id="update_rank" >
+            <label for="update_genre">Genre</label>
+            <input type="text" name="update_genre" id="update_genre" > 
+            <label for="update_director_first_name">Director First Name</label>
+            <input type="text" name="update_director_first_name" id="update_director_first_name" >
+            <label for="update_director_last_name">Director Last Name</label>
+            <input type="text" name="update_director_last_name" id="update_director_last_name" >
+            <button form="update" id="update_submit" type="submit" disabled> Submit </button>
         </form>
     </div>
 </body>
