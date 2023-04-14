@@ -199,39 +199,112 @@ app.get('/:page', (req, res) => {
 // });
 
 
-// app.post('/insert', (req, res) => {
-// 	const movie = req.body;
-// 	getConnection(function(mysqlConnection){
-// 		mysqlConnection.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
-// 			if (err) {
-// 				console.error('Error querying MySQL database: ' + err.stack);
-// 				res.status(500).send('Error querying MySQL database');
-// 				return;
-// 			}
-// 			else {
-// 				new_id = resp[0].new;
-// 				console.log("new_id: " + new_id);
+app.post('/insert', (req, res) => {
+	const movie = req.body;
+		node_1.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
+			if (err) {
+				node_2.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
+					if (err) {
+						console.error('Error querying node_2 MySQL database: ' + err.stack);
+						res.status(500).send('Error querying MySQL database');
+						return;
+					}
+					else {
+						new_id1 = resp[0].new;
+						console.log("new_id1: " + new_id1);
+						
+						node_3.query(`SELECT max(id) + 1 AS new FROM movies`, (err,resp) => {
+							if (err){
+								console.error('Error querying node_2 MySQL database: ' + err.stack);
+								res.status(500).send('Error querying MySQL database');
+								return;
+							}
+							else {
+								
+								var max;
+								new_id2 = resp[0].new;
+								console.log("new_id2: " + new_id2);
+								if(new_id1 > new_id2){
+									max = new_id1
+								} 
+								else{
+									max = new_id2
+								}
+								console.log(max)
+
+								const values = [max, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+								const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
+								
+								if(movie.year >= 1980){
+									node_3.query(statement, values, (err, results) => {
+										if (err) {
+											console.error('Error querying MySQL database: ' + err.stack);
+											res.status(500).send('Error querying MySQL database');
+											return;
+										}
+										else {
+											console.log("Successfully Inserted Data");
+											res.redirect('/');
+										}
+									})
+								}
+								else{
+									node_2.query(statement, values, (err, results) => {
+										if (err) {
+											console.error('Error querying MySQL database: ' + err.stack);
+											res.status(500).send('Error querying MySQL database');
+											return;
+										}
+										else {
+											console.log("Successfully Inserted Data");
+											res.redirect('/');
+										}
+									})
+								}
+
+							}
+
+						})
+
+						// const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+						// const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
+						
+						// node_1.query(statement, values, (err, results) => {
+						// 	if (err) {
+						// 		console.error('Error querying MySQL database: ' + err.stack);
+						// 		res.status(500).send('Error querying MySQL database');
+						// 		return;
+						// 	}
+						// 	else {
+						// 		console.log("Successfully Inserted Data");
+						// 		res.redirect('/');
+						// 	}
+						// })
+					}
+				});
+			}
+			else {
+				new_id = resp[0].new;
+				console.log("new_id: " + new_id);
 				
-// 				const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
-// 				const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
+				const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+				const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
 				
-// 				mysqlConnection.query(statement, values, (err, results) => {
-// 					if (err) {
-// 						console.error('Error querying MySQL database: ' + err.stack);
-// 						res.status(500).send('Error querying MySQL database');
-// 						return;
-// 					}
-// 					else {
-// 						console.log("Successfully Inserted Data");
-// 						res.redirect('/');
-// 					}
-// 				})
-// 			}
-// 		});
-// 	});
+				node_1.query(statement, values, (err, results) => {
+					if (err) {
+						console.error('Error querying MySQL database: ' + err.stack);
+						res.status(500).send('Error querying MySQL database');
+						return;
+					}
+					else {
+						console.log("Successfully Inserted Data");
+						res.redirect('/');
+					}
+				})
+			}
+		});
 	
-	
-// });
+});
 
 // app.post('/update', async (req, res) => {
 
