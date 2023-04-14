@@ -29,47 +29,27 @@ app.get('/:page', (req, res) => {
 		const recordsPerPage = 10; // Set the number of records per page
 	
 		// Retrieve the total number of records in the database table
-		node_1.query('SELECT COUNT(*) AS total FROM movies', (err, result) => {
+		node_3.query('SELECT COUNT(*) AS total FROM movies', (err, result) => {
 			if (err){
-				node_2.query('SELECT COUNT(*) AS total FROM movies', (err, result) => {
+				node_1.query('SELECT COUNT(*) AS total FROM movies WHERE year >= 1980', (err, result) => {
 					if (err) throw err;
 					var totalRecords = result[0].total;
 					// Calculate the total number of pages
 					var totalPages = Math.ceil(totalRecords / recordsPerPage);
-					var node_2_total_pages = totalPages;
+					// Calculate the offset for the SQL query based on the current page
+					const offset = (page - 1) * recordsPerPage;
 					// Retrieve the data for the current page
-					node_3.query('SELECT COUNT(*) AS total FROM movies', (err, data) => {
+					console.log("node_1");
+					node_1.query('SELECT * FROM movies WHERE year >= 1980 LIMIT ? OFFSET ?', [recordsPerPage, offset], (err, results) => {
 						if (err) throw err;
-						totalRecords += data[0].total;
-					
-						// Calculate the total number of pages
-						const totalPages = Math.ceil(totalRecords / recordsPerPage);
-					
-						// Calculate the offset for the SQL query based on the current page
-						var offset = (page - 1) * recordsPerPage;
-						console.log("node_2_total_pages: " + node_2_total_pages);
-						// Retrieve the data for the current page
-						if(node_2_total_pages >= page){
-							console.log("node_2");
-							node_2.query('SELECT * FROM movies LIMIT ? OFFSET ?', [recordsPerPage, offset], (err, results) => {
-								if (err) throw err;
-								res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-							});
-						}
-						else{
-							console.log("node_3");
-							offset = (page - 1 - node_2_total_pages) * recordsPerPage;
-							node_3.query('SELECT * FROM movies LIMIT ? OFFSET ?', [recordsPerPage, offset], (err, results) => {
-								if (err) throw err;
-								res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-							});
-						}
-						
+						res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 					});
+					
 					
 				});
 			}
 			else{
+				console.log("node_3");
 				const totalRecords = result[0].total;
 			
 				// Calculate the total number of pages
@@ -78,13 +58,13 @@ app.get('/:page', (req, res) => {
 				// Calculate the offset for the SQL query based on the current page
 				const offset = (page - 1) * recordsPerPage;
 				// Retrieve the data for the current page
-				node_1.query('SELECT * FROM movies LIMIT ? OFFSET ?', [recordsPerPage, offset], (err, results) => {
+				node_3.query('SELECT * FROM movies LIMIT ? OFFSET ?', [recordsPerPage, offset], (err, results) => {
 					if (err) throw err;
 					res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 				});
 			}
 			
-		});	
+		});		
 		
 	}
 	
