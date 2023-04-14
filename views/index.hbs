@@ -38,22 +38,25 @@
         <!-- checkbox for delete -->
         <!-- Tabular view of the database -->
         <form id="delete" action="/delete" method="POST">
-            <table class="table table-striped" id="movies_table" style="width:100%">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Year</th>
-                        <th>Rank</th>
-                        <th>Genre</th>
-                        <th>Director First Name</th>
-                        <th>Director Last Name</th>
-                    </tr>
-                </thead>
+            <button form="delete" id="delete_submit" type="submit" disabled>Delete</button>
+        </form>
+
+        <table class="table table-hover" id="movies_table" style="width:100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Year</th>
+                    <th>Rank</th>
+                    <th>Genre</th>
+                    <th>Director First Name</th>
+                    <th>Director Last Name</th>
+                    <th></th>
+                </tr>
+            </thead>
                 
                 <!-- For each movies -->
-                <tbody>
+            <tbody>
                 {{!-- <tr> 
                     <td><input form="delete" name="delete_row" th:value="ID" type="radio"></td>
                     <td>1</td>
@@ -64,27 +67,26 @@
                     <td>Michael</td>
                     <td>Bay</td>
                 </tr> --}}
-                    {{#each movies}}
-                        {{> movierows this}}
-                    {{/each}}
-                </tbody>
+                {{#each movies}}
+                    {{> movierows this}}
+                {{/each}}
+            </tbody>
 
-                <tfoot>
-                    <tr>
-                        <th></th>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Year</th>
-                        <th>Rank</th>
-                        <th>Genre</th>
-                        <th>Director First Name</th>
-                        <th>Director Last Name</th>
-                    </tr>
-                </tfoot>
-            </table>
-            <button form="delete" id="delete_submit" type="submit" disabled>Delete</button>
-        </form>
+            <tfoot>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Year</th>
+                    <th>Rank</th>
+                    <th>Genre</th>
+                    <th>Director First Name</th>
+                    <th>Director Last Name</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
         
+
         <p><span id="page">{{current_page}}</span> / <span id="total">{{total_pages}}</span></p>
         <button id="prev_page">Previous</button>
         <button id="next_page">Next</button>

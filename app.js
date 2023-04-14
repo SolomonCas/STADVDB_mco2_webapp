@@ -306,50 +306,74 @@ app.post('/insert', (req, res) => {
 	
 });
 
-// app.post('/update', async (req, res) => {
+app.post('/update', (req, res) => {
 
-// 	const movie = req.body;
-// 	const statement = `UPDATE movies SET name = COALESCE(NULLIF(?, ''), name), year = COALESCE(NULLIF(?, ''), year), \`rank\` = COALESCE(NULLIF(?, ''), \`rank\`), genre = COALESCE(NULLIF(?, ''), genre), director_first_name = COALESCE(NULLIF(?, ''), director_first_name), director_last_name = COALESCE(NULLIF(?, ''), director_last_name) WHERE id = ?`;
-// 	if(movie.update_id == ''){
-// 		res.redirect('/');
-// 	}
-// 	else{
-// 		const values = [movie.update_name, movie.update_year, movie.update_rank, movie.update_genre, movie.update_director_first_name, movie.update_director_last_name, movie.update_id];
-// 		getConnection(function(mysqlConnection){
-// 			mysqlConnection.query(statement, values, (err, rows, fields) => {
-// 				if (err) {
-// 					console.error('Error querying MySQL database: ' + err.stack);
-// 					res.status(500).send('Error querying MySQL database');
-// 					return;
-// 				}
-// 				console.log('Successfully Updated Data');
-// 				res.redirect('/');
-// 			});
-// 		});
+	const movie = req.body;
+	const statement = `UPDATE movies SET name = COALESCE(NULLIF(?, ''), name), year = COALESCE(NULLIF(?, ''), year), \`rank\` = COALESCE(NULLIF(?, ''), \`rank\`), genre = COALESCE(NULLIF(?, ''), genre), director_first_name = COALESCE(NULLIF(?, ''), director_first_name), director_last_name = COALESCE(NULLIF(?, ''), director_last_name) WHERE id = ?`;
+	const values = [movie.update_name, movie.update_year, movie.update_rank, movie.update_genre, movie.update_director_first_name, movie.update_director_last_name, movie.update_id];
+	if(movie.update_id == ''){
+		res.redirect('/');
+	}
+	else{
+		node_1.query(statement, values, (err, results) => {
+			if (err) {
+				if (movie.update_year < 1980) {
+					node_2.query(statement, values, (err, results) => {
+						if (err) throw err;
+						console.log('Successfully Updated Data');
+						res.redirect('/');
+					})
+				}
+				else {
+					node_3.query(statement, values, (err, results) => {
+						if (err) throw err;
+						console.log('Successfully Updated Data');
+						res.redirect('/');
+					})
+				}
+			}
+			else {
+				console.log('Successfully Updated Data');
+				res.redirect('/');
+			}
+		});
 		
-// 	}
+	}
 	
-// });
+});
 
-// app.post('/delete', (req, res) => {
+app.post('/delete', (req, res) => {
 
-// 	const id = req.body.selectedrow;
-// 	console.log(id);
+	const movie = req.body;
+	const statement = `DELETE FROM movies WHERE id = ?`;
+	const values = [movie.id];
+	node_1.query(statement, values, (err, rows, fields) => {
+		if (err) {
+			if (movie.year < 1980) {
+				node_2.query(statement, values, (err, results) => {
+					if (err) throw err;
+					console.log('Successfully Deleted Data node2');
+					res.status(200).send();
+					return;
+				})
+			}
+			else {
+				node_3.query(statement, values, (err, results) => {
+					if (err) throw err;
+					console.log('Successfully Deleted Data node3');
+					res.status(200).send();
+					return;
+				})
+			}
+		}
+		else {
+			console.log('Successfully Deleted Data node1');
+			res.status(200).send();
+			return;
+		}
+	});
+});
 
-// 	getConnection(function(mysqlConnection){
-// 		mysqlConnection.query(`DELETE FROM movies WHERE id = ${id}`, (err, rows, fields) => {
-// 			if (err) {
-// 				console.error('Error querying MySQL database: ' + err.stack);
-// 				res.status(500).send('Error querying MySQL database');
-// 				return;
-// 			}
-// 			console.log('Successful Deletion');
-// 			res.redirect('/');
-// 		});
-// 	});
-	
-
-// });
 app.listen(80, () => {
  	console.log('Node.js server running on port 80');
 });
