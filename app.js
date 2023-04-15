@@ -1,12 +1,10 @@
 const express = require('express');
+const session = require('express-session');
 const bodyParser = require('body-parser');
 const {node_1, node_2, node_3} = require('./mysql');
 const exphbs = require('express-handlebars');
 
 const app = express();
-var filter_operator;
-var filter_attribute, search_attribute;
-var filter_input, search_input;
 
 app.engine("hbs", exphbs.engine({ extname: 'hbs', partialsDir: __dirname + '/views/partial/' }));
 app.set('view engine', 'hbs');
@@ -14,7 +12,12 @@ app.set('view engine', 'hbs');
 app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: false }));
 
-
+// Set up session middleware
+app.use(session({
+	secret: 'supercalifragilisticexpialidocious',
+	resave: false,
+	saveUninitialized: true
+  }));
 
 
 app.get('/', (req, res) => {
@@ -93,6 +96,12 @@ app.get('/:page', (req, res) => {
 app.get('/filter/:page', (req, res) => {
 	const page = parseInt(req.params.page);
     const recordsPerPage = 10; // Set the number of records per page
+	
+	// get session variables
+	const filter_attribute = req.session.filter_attribute;
+	const filter_operator = req.session.filter_operator;
+	const filter_input = req.session.filter_input;
+	
     //Retrieve the total number of records in the database table'
 	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
 		if (err) {
@@ -159,20 +168,23 @@ app.post('/filter/:page', (req, res) => {
 	const filter = req.body;
 	const page = parseInt(req.params.page);
     const recordsPerPage = 10; // Set the number of records per page
-	filter_operator = filter.operator;
-	filter_attribute = filter.attribute;
-	filter_input = filter.filter_input;
+
+	// get session variables
+	const filter_attribute = req.session.filter_attribute = filter.attribute;
+	const filter_operator = req.session.filter_operator = filter.operator;
+	const filter_input = req.session.filter_input = filter.filter_input;
+	
     // Retrieve the total number of records in the database table
-	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter.attribute} ${filter.operator} ${filter.filter_input}`, (err, result) => {
+	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
 		if (err) {
-			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter.attribute} ${filter.operator} ${filter.filter_input}`, (err, result) => {
+			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
 				if (err) throw err;
 				var totalRecords = result[0].total;
 				// Calculate the total number of pages
 				var totalPages = Math.ceil(totalRecords / recordsPerPage);
 				var node_2_total_pages = totalPages;
 				// Retrieve the data for the current page
-				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter.attribute} ${filter.operator} ${filter.filter_input}`, (err, data) => {
+				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, data) => {
 					if (err) throw err;
 					totalRecords += data[0].total;
 				
@@ -185,7 +197,7 @@ app.post('/filter/:page', (req, res) => {
 					// Retrieve the data for the current page
 					if(node_2_total_pages >= page){
 						console.log("node_2");
-						node_2.query(`SELECT * FROM movies WHERE ${filter.attribute} ${filter.operator} ${filter.filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+						node_2.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
 							if (err) throw err;
 							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 						});
@@ -193,7 +205,7 @@ app.post('/filter/:page', (req, res) => {
 					else{
 						console.log("node_3");
 						offset = (page - 1 - node_2_total_pages) * recordsPerPage;
-						node_3.query(`SELECT * FROM movies WHERE ${filter.attribute} ${filter.operator} ${filter.filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+						node_3.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
 							if (err) throw err;
 							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 						});
@@ -213,7 +225,7 @@ app.post('/filter/:page', (req, res) => {
 			const offset = (page - 1) * recordsPerPage;
 		
 			// Retrieve the data for the current page
-			node_1.query(`SELECT * FROM movies WHERE ${filter.attribute} ${filter.operator} ${filter.filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+			node_1.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
 				if (err) throw err;
 				res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 			});
@@ -226,6 +238,11 @@ app.post('/filter/:page', (req, res) => {
 app.get('/search/:page', (req, res) => {
 	const page = parseInt(req.params.page);
     const recordsPerPage = 10; // Set the number of records per page
+	
+	// get session variables
+	const search_attribute = req.session.search_attribute;
+	const search_input = req.session.search_input;
+
     // Retrieve the total number of records in the database table
 	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
 		if (err) {
@@ -291,20 +308,22 @@ app.post('/search/:page', (req, res) => {
 	const search = req.body;
 	const page = parseInt(req.params.page);
     const recordsPerPage = 10; // Set the number of records per page
-	search_attribute = search.attribute;
-	search_input = search.search_input;
-    // Retrieve the total number of records in the database table
 	
-	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute}`, (err, result) => {
+	// get session variables
+	const search_attribute = req.session.search_attribute = search.attribute;
+	const search_input = req.session.search_input = search.search_input;
+
+    // Retrieve the total number of records in the database table
+	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
 		if (err) {
-			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute}`, (err, result) => {
+			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
 				if (err) throw err;
 				var totalRecords = result[0].total;
 				// Calculate the total number of pages
 				var totalPages = Math.ceil(totalRecords / recordsPerPage);
 				var node_2_total_pages = totalPages;
 				// Retrieve the data for the current page
-				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute}`, (err, data) => {
+				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, data) => {
 					if (err) throw err;
 					totalRecords += data[0].total;
 				
@@ -317,7 +336,7 @@ app.post('/search/:page', (req, res) => {
 					// Retrieve the data for the current page
 					if(node_2_total_pages >= page){
 						console.log("node_2");
-						node_2.query(`SELECT * FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+						node_2.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
 							if (err) throw err;
 							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 						});
@@ -325,7 +344,7 @@ app.post('/search/:page', (req, res) => {
 					else{
 						console.log("node_3");
 						offset = (page - 1 - node_2_total_pages) * recordsPerPage;
-						node_3.query(`SELECT * FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+						node_3.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
 							if (err) throw err;
 							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 						});
@@ -345,7 +364,7 @@ app.post('/search/:page', (req, res) => {
 			const offset = (page - 1) * recordsPerPage;
 		
 			// Retrieve the data for the current page
-			node_1.query(`SELECT * FROM movies WHERE ${search.attribute} LIKE "%${search.search_input}%" ORDER BY ${search.attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+			node_1.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
 				if (err) throw err;
 				res.render('index', { movies: results, current_page: page, total_pages: totalPages});
 			});
