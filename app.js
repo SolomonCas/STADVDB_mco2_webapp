@@ -20,53 +20,115 @@ app.use(session({
   }));
 
 
-app.get('/', async (req, res) => {
+  app.get('/', (req, res) => {
+	const promises = [];
 	console.log("@/");
-	node_1.query(`SELECT * FROM logs`, function(err, result){
-		if(err){
-			console.log(err);
-			return;
-		}
-		else{
-			console.log("REPLICATING DATA USING NODE 1")
-			for(let log of result) {
-				if(log.node == 2){
-					node_2.query(log.sql_statement, function(err){
-						if (err){
+	promises.push(new Promise ((resolve, reject) => {
+		node_1.query(`SELECT * FROM logs`, function(err, result) {
+			if (err) {
+			  console.log(err);
+			  resolve();
+			} else {
+			  console.log("REPLICATING DATA USING NODE 1");
+		
+			  
+		
+			  for (let log of result) {
+				if (log.node == 2) {
+	  
+				  promises.push(new Promise((resolve, reject) => {
+					node_2.query(log.sql_statement, function(err) {
+					  if (err) {
+						  console.log(err);
+						  resolve();
+					  } else {
+						node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
+						  if (err) {
 							console.log(err);
-							return;
-						}
-						else{
-							node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err){
-								if (err) throw err;
-								console.log('SUCCESSFULLY REMOVE LOG');
-								return;
-							});
-						}
-					})
-				}
-				else{
-					node_3.query(log.sql_statement, function(err){
-						if (err){
-							console.log(err);
-							return;
-						}
-						else{
-							node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err){
-								if (err) throw err;
-								console.log('SUCCESSFULLY REMOVE LOG');
-								return;
-							});
-						}
+							resolve();
+						  } else {
+							console.log('SUCCESSFULLY REMOVE LOG IN NODE 1');
+							resolve();
+						  }
+						});
+					  }
 					});
+				  }));
+				} else {
+	  
+				  promises.push(new Promise((resolve, reject) => {
+					node_3.query(log.sql_statement, function(err) {
+					  if (err) {
+						  console.log(err);
+						  resolve();
+					  } else {
+						node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
+						  if (err) {
+							  console.log(err);
+							  resolve();
+						  } else {
+							console.log('SUCCESSFULLY REMOVE LOG IN NODE 1');
+							resolve();
+						  }
+						});
+					  }
+					});
+				  }));
 				}
-			}		
-		}
-			
-	});
-	
-	
-});
+			  }
+	  
+			  resolve();
+			}
+		  });
+	}));
+
+	promises.push(new Promise ((resolve, reject) => {
+		node_2.query(`SELECT * FROM logs`, function(err, result) {
+			if (err) {
+			  console.log(err);
+			  resolve();
+			} 
+			else {
+				console.log("REPLICATING DATA USING NODE 2");
+		
+			  
+		
+				for (let log of result) {
+
+					promises.push(new Promise((resolve, reject) => {
+						node_1.query(log.sql_statement, function(err) {
+							if (err) {
+								console.log(err);
+								resolve();
+							} else {
+							node_2.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
+								if (err) {
+									console.log(err);
+									resolve();
+								} 
+								else {
+									console.log('SUCCESSFULLY REMOVE LOG IN NODE 2');
+									resolve();
+								}
+							});
+							}
+						});
+					}));
+				}
+				resolve();
+			}	
+		  });
+	}));
+
+	Promise.all(promises)
+		  .then(() => {
+			res.redirect('/1');
+		  })
+		  .catch((err) => {
+			console.log(err);
+			res.status(500).send('An error occurred');
+		  });
+  });
 
 app.get('/:page', (req, res) => {
 	console.log("@/:page");
@@ -813,7 +875,7 @@ app.post('/insert', (req, res) => {
 
 							const values = [max, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
 							const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-							const log_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${max}, ${movie.name}, ${movie.year}, COALESCE(NULLIF(${movie.rank}, ''), NULL), COALESCE(NULLIF(${movie.genre}, ''), NULL), COALESCE(NULLIF(${movie.director_first_name}, ''), NULL), COALESCE(NULLIF(${movie.director_last_name}, ''), NULL))`;
+							const log_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${max}, \"${movie.name}\", ${movie.year}, COALESCE(NULLIF(\"${movie.rank}\", ''), NULL), COALESCE(NULLIF(\"${movie.genre}\", ''), NULL), COALESCE(NULLIF(\"${movie.director_first_name}\", ''), NULL), COALESCE(NULLIF(\"${movie.director_last_name}\", ''), NULL))`;
 							if(movie.year >= 1980){
 								node_3.query('START TRANSACTION', function(err) {
 									if (err) {
@@ -916,8 +978,10 @@ app.post('/insert', (req, res) => {
 					console.log("new_id: " + new_id);
 					
 					const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+
+
 					const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-					const log_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${new_id}, ${movie.name}, ${movie.year}, COALESCE(NULLIF(${movie.rank}, ''), NULL), COALESCE(NULLIF(${movie.genre}, ''), NULL), COALESCE(NULLIF(${movie.director_first_name}, ''), NULL), COALESCE(NULLIF(${movie.director_last_name}, ''), NULL))`;
+					const log_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${new_id}, \"${movie.name}\", ${movie.year}, COALESCE(NULLIF(\"${movie.rank}\", ''), NULL), COALESCE(NULLIF(\"${movie.genre}\", ''), NULL), COALESCE(NULLIF(\"${movie.director_first_name}\", ''), NULL), COALESCE(NULLIF(\"${movie.director_last_name}\", ''), NULL))`;
 					node_1.query(statement, values, (err, results) => {
 						if (err) {
 							node_1.query('ROLLBACK', function() {
