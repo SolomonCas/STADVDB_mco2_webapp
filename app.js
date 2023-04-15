@@ -491,29 +491,107 @@ app.post('/update', (req, res) => {
 		res.redirect('/');
 	}
 	else{
-		node_1.query(statement, values, (err, results) => {
+		node_1.query('START TRANSACTION', function(err) {
 			if (err) {
 				if (movie.update_year < 1980) {
-					node_2.query(statement, values, (err, results) => {
-						if (err) throw err;
-						console.log('Successfully Updated Data');
-						res.redirect('/');
+					node_2.query('START TRANSACTION', function(err) {
+						if (err) {
+							node_2.query('ROLLBACK', function() {
+								console.log('NODE 2 transaction rolled back.');
+							  throw err;
+							});
+						}
+						else {
+							node_2.query(statement, values, (err, results) => {
+								if (err) {
+									node_1.query('ROLLBACK', function() {
+										console.log('NODE 2 transaction rolled back.');
+									  	throw err;
+									});
+								}
+								else {
+									node_2.query('COMMIT', function(err) {
+										if (err) {
+											node_3.query('ROLLBACK', function() {
+												console.log('NODE 2 transaction rolled back.');
+												throw err;
+											});
+										}
+										else {
+											console.log('NODE 2 transaction completed successfully.');
+											console.log('Successfully updated data with id: ' + movie.update_id);
+											res.redirect('/');
+										}
+									});
+								}
+							})
+						}
 					})
 				}
 				else {
-					node_3.query(statement, values, (err, results) => {
-						if (err) throw err;
-						console.log('Successfully Updated Data');
-						res.redirect('/');
+					node_3.query('START TRANSACTION', function(err) {
+						if (err) {
+							node_3.query('ROLLBACK', function() {
+								console.log('NODE 3 transaction rolled back.');
+							  	throw err;
+							});
+						}
+						else {
+							node_3.query(statement, values, (err, results) => {
+								if (err) {
+									node_3.query('ROLLBACK', function() {
+										console.log('NODE 3 transaction rolled back.');
+									  throw err;
+									});
+								}
+								else {
+									node_3.query('COMMIT', function(err) {
+										if (err) {
+											node_3.query('ROLLBACK', function() {
+												console.log('NODE 3 transaction rolled back.');
+												throw err;
+											});
+										}
+										else {
+											console.log('Node 3 transaction completed successfully.');
+											console.log('Successfully updated data with id: ' + movie.update_id);
+											res.redirect('/');
+										}
+									});
+								}
+							})
+						}
 					})
 				}
 			}
 			else {
-				console.log('Successfully Updated Data');
-				res.redirect('/');
+				console.log('NODE 1 transaction started.');
+				node_1.query(statement, values, (err, results) => {
+					if (err) {
+						node_1.query('ROLLBACK', function() {
+							console.log('NODE 1 transaction rolled back.');
+						  throw err;
+						});
+					}
+					else {
+						node_1.query('COMMIT', function(err) {
+							if (err) {
+								node_1.query('ROLLBACK', function() {
+									console.log('NODE 1 transaction rolled back.');
+									throw err;
+							  	});
+							}
+							else {
+								console.log('NODE 1 transaction completed successfully.');
+								console.log('Successfully updated data with id: ' + movie.update_id);
+								res.redirect('/');
+							}
+						  });
+					}
+				});
 			}
-		});
-		
+		})
+		  
 	}
 	
 });
