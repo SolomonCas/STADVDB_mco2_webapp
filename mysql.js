@@ -29,6 +29,7 @@ const node_3 = mysql.createPool({
 node_1.getConnection((err, conn) => {
 	if (err) {
 		console.error('Error connecting to MySQL server: ' + err.stack);
+		return;
 	}
 	else{
 		console.log('Connected to MySQL server node 1 with id ' + conn.threadId);
@@ -38,7 +39,6 @@ node_1.getConnection((err, conn) => {
 node_2.getConnection((err, conn) => {
 	if (err) {
 		console.error('Error connecting to MySQL server: ' + err.stack);
-
 	}
 	else{
 		console.log('Connected to MySQL server node 2 with id ' + conn.threadId);

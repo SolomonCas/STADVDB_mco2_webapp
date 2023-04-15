@@ -102,63 +102,150 @@ app.get('/filter/:page', (req, res) => {
 	const filter_operator = req.session.filter_operator;
 	const filter_input = req.session.filter_input;
 	
-    //Retrieve the total number of records in the database table'
-	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
-		if (err) {
-			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
-				if (err) throw err;
-				var totalRecords = result[0].total;
-				// Calculate the total number of pages
-				var totalPages = Math.ceil(totalRecords / recordsPerPage);
-				var node_2_total_pages = totalPages;
-				// Retrieve the data for the current page
-				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, data) => {
-					if (err) throw err;
-					totalRecords += data[0].total;
-				
-					// Calculate the total number of pages
-					const totalPages = Math.ceil(totalRecords / recordsPerPage);
-				
-					// Calculate the offset for the SQL query based on the current page
-					var offset = (page - 1) * recordsPerPage;
-					console.log("node_2_total_pages: " + node_2_total_pages);
-					// Retrieve the data for the current page
-					if(node_2_total_pages >= page){
-						console.log("node_2");
-						node_2.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					else{
-						console.log("node_3");
-						offset = (page - 1 - node_2_total_pages) * recordsPerPage;
-						node_3.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					
-				});
-				
+    // Start Transaction
+	node_1.query('START TRANSACTION', function(err){
+		if(err){
+			// Start Transaction Node 2
+			console.log('NODE 2 transaction started.');
+			node_2.query('START TRANSACTION', function(err){
+				if(err){
+					console.error('Error querying node_2 MySQL database: ' + err.stack);
+					res.status(500).send('Error querying MySQL database');
+					return;
+				}
+				else{
+					node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
+						if (err) {
+							node_2.query('ROLLBACK', function() {
+								console.log('NODE 2 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							var totalRecords = result[0].total;
+							// Calculate the total number of pages
+							var totalPages = Math.ceil(totalRecords / recordsPerPage);
+							var node_2_total_pages = totalPages;
+							// Start Transaction Node 3
+							console.log('NODE 3 transaction started.');
+							node_3.query('START TRANSACTION', function(err){
+								if (err){
+									node_2.query('ROLLBACK', function() {
+										console.log('NODE 2 transaction rolled back.');
+										console.error('Error querying node_3 MySQL database: ' + err.stack);
+										res.status(500).send('Error querying MySQL database');
+									});
+									
+								}
+								else{
+									// Retrieve the data for the current page
+									node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, data) => {
+										if (err){
+											node_2.query('ROLLBACK', function() {
+												console.log('NODE 2 transaction rolled back.');
+												console.error('Error querying node_3 MySQL database: ' + err.stack);
+												res.status(500).send('Error querying MySQL database');
+											});
+										}
+										else{
+											node_2.query('COMMIT', function(err){
+												if(err){
+													node_2.query('ROLLBACK', function() {
+														console.log('NODE 2 transaction rolled back.');
+														node_3.query('ROLLBACK', function() {
+															console.log('NODE 3 transaction rolled back.');
+														});
+													  throw err;
+													});
+												}
+												else{
+													node_3.query('COMMIT', function(err){
+														if(err){
+															node_3.query('ROLLBACK', function() {
+																console.log('NODE 3 transaction rolled back.');
+																
+															  throw err;
+															});
+														}
+														else{
+															totalRecords += data[0].total;
+									
+															// Calculate the total number of pages
+															const totalPages = Math.ceil(totalRecords / recordsPerPage);
+														
+															// Calculate the offset for the SQL query based on the current page
+															var offset = (page - 1) * recordsPerPage;
+															console.log("node_2_total_pages: " + node_2_total_pages);
+															// Retrieve the data for the current page
+															if(node_2_total_pages >= page){
+																console.log("node_2");
+																node_2.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+															else{
+																console.log("node_3");
+																offset = (page - 1 - node_2_total_pages) * recordsPerPage;
+																node_3.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+														}
+													})
+												}
+											});
+										}
+										
+										
+									});
+								}
+							});
+						}
+						
+						
+						
+					});
+				}
 			});
 		}
 		else{
-			const totalRecords = result[0].total;
+			console.log('NODE 1 transaction started.');
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
+				if (err){
+					node_1.query('ROLLBACK', function() {
+						console.log('NODE 1 transaction rolled back.');
+						throw err;
+					});
+				}
+				else{
+					node_1.query('COMMIT', function(err){
+						if(err){
+							node_1.query('ROLLBACK', function() {
+								console.log('NODE 1 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							const totalRecords = result[0].total;
 	
-			// Calculate the total number of pages
-			const totalPages = Math.ceil(totalRecords / recordsPerPage);
-		
-			// Calculate the offset for the SQL query based on the current page
-			const offset = (page - 1) * recordsPerPage;
-		
-			// Retrieve the data for the current page
-			node_1.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-				if (err) throw err;
-				res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							// Calculate the total number of pages
+							const totalPages = Math.ceil(totalRecords / recordsPerPage);
+						
+							// Calculate the offset for the SQL query based on the current page
+							const offset = (page - 1) * recordsPerPage;
+						
+							// Retrieve the data for the current page
+							node_1.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+								if (err) throw err;
+								res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							});
+						}
+					});
+				}
 			});
 		}
-		
 	});
     
 });
@@ -173,64 +260,151 @@ app.post('/filter/:page', (req, res) => {
 	const filter_attribute = req.session.filter_attribute = filter.attribute;
 	const filter_operator = req.session.filter_operator = filter.operator;
 	const filter_input = req.session.filter_input = filter.filter_input;
-	
-    // Retrieve the total number of records in the database table
-	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
-		if (err) {
-			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
-				if (err) throw err;
-				var totalRecords = result[0].total;
-				// Calculate the total number of pages
-				var totalPages = Math.ceil(totalRecords / recordsPerPage);
-				var node_2_total_pages = totalPages;
-				// Retrieve the data for the current page
-				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, data) => {
-					if (err) throw err;
-					totalRecords += data[0].total;
-				
-					// Calculate the total number of pages
-					const totalPages = Math.ceil(totalRecords / recordsPerPage);
-				
-					// Calculate the offset for the SQL query based on the current page
-					var offset = (page - 1) * recordsPerPage;
-					console.log("node_2_total_pages: " + node_2_total_pages);
-					// Retrieve the data for the current page
-					if(node_2_total_pages >= page){
-						console.log("node_2");
-						node_2.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					else{
-						console.log("node_3");
-						offset = (page - 1 - node_2_total_pages) * recordsPerPage;
-						node_3.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					
-				});
-				
+
+	// Start Transaction
+	node_1.query('START TRANSACTION', function(err){
+		if(err){
+			// Start Transaction Node 2
+			console.log('NODE 2 transaction started.');
+			node_2.query('START TRANSACTION', function(err){
+				if(err){
+					console.error('Error querying node_2 MySQL database: ' + err.stack);
+					res.status(500).send('Error querying MySQL database');
+					return;
+				}
+				else{
+					node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
+						if (err) {
+							node_2.query('ROLLBACK', function() {
+								console.log('NODE 2 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							var totalRecords = result[0].total;
+							// Calculate the total number of pages
+							var totalPages = Math.ceil(totalRecords / recordsPerPage);
+							var node_2_total_pages = totalPages;
+							// Start Transaction Node 3
+							console.log('NODE 3 transaction started.');
+							node_3.query('START TRANSACTION', function(err){
+								if (err){
+									node_2.query('ROLLBACK', function() {
+										console.log('NODE 2 transaction rolled back.');
+										console.error('Error querying node_3 MySQL database: ' + err.stack);
+										res.status(500).send('Error querying MySQL database');
+									});
+									
+								}
+								else{
+									// Retrieve the data for the current page
+									node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, data) => {
+										if (err){
+											node_2.query('ROLLBACK', function() {
+												console.log('NODE 2 transaction rolled back.');
+												console.error('Error querying node_3 MySQL database: ' + err.stack);
+												res.status(500).send('Error querying MySQL database');
+											});
+										}
+										else{
+											node_2.query('COMMIT', function(err){
+												if(err){
+													node_2.query('ROLLBACK', function() {
+														console.log('NODE 2 transaction rolled back.');
+														node_3.query('ROLLBACK', function() {
+															console.log('NODE 3 transaction rolled back.');
+														});
+													  throw err;
+													});
+												}
+												else{
+													node_3.query('COMMIT', function(err){
+														if(err){
+															node_3.query('ROLLBACK', function() {
+																console.log('NODE 3 transaction rolled back.');
+																
+															  throw err;
+															});
+														}
+														else{
+															totalRecords += data[0].total;
+									
+															// Calculate the total number of pages
+															const totalPages = Math.ceil(totalRecords / recordsPerPage);
+														
+															// Calculate the offset for the SQL query based on the current page
+															var offset = (page - 1) * recordsPerPage;
+															console.log("node_2_total_pages: " + node_2_total_pages);
+															// Retrieve the data for the current page
+															if(node_2_total_pages >= page){
+																console.log("node_2");
+																node_2.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+															else{
+																console.log("node_3");
+																offset = (page - 1 - node_2_total_pages) * recordsPerPage;
+																node_3.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+														}
+													})
+												}
+											});
+										}
+										
+										
+									});
+								}
+							});
+						}
+						
+						
+						
+					});
+				}
 			});
 		}
 		else{
-			const totalRecords = result[0].total;
+			console.log('NODE 1 transaction started.');
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
+				if (err){
+					node_1.query('ROLLBACK', function() {
+						console.log('NODE 1 transaction rolled back.');
+						throw err;
+					});
+				}
+				else{
+					node_1.query('COMMIT', function(err){
+						if(err){
+							node_1.query('ROLLBACK', function() {
+								console.log('NODE 1 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							const totalRecords = result[0].total;
 	
-			// Calculate the total number of pages
-			const totalPages = Math.ceil(totalRecords / recordsPerPage);
-		
-			// Calculate the offset for the SQL query based on the current page
-			const offset = (page - 1) * recordsPerPage;
-		
-			// Retrieve the data for the current page
-			node_1.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-				if (err) throw err;
-				res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							// Calculate the total number of pages
+							const totalPages = Math.ceil(totalRecords / recordsPerPage);
+						
+							// Calculate the offset for the SQL query based on the current page
+							const offset = (page - 1) * recordsPerPage;
+						
+							// Retrieve the data for the current page
+							node_1.query(`SELECT * FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+								if (err) throw err;
+								res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							});
+						}
+					});
+				}
 			});
 		}
-		
 	});
     
 });
@@ -243,63 +417,156 @@ app.get('/search/:page', (req, res) => {
 	const search_attribute = req.session.search_attribute;
 	const search_input = req.session.search_input;
 
-    // Retrieve the total number of records in the database table
-	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
-		if (err) {
-			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
-				if (err) throw err;
-				var totalRecords = result[0].total;
-				// Calculate the total number of pages
-				var totalPages = Math.ceil(totalRecords / recordsPerPage);
-				var node_2_total_pages = totalPages;
-				// Retrieve the data for the current page
-				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, data) => {
-					if (err) throw err;
-					totalRecords += data[0].total;
-				
-					// Calculate the total number of pages
-					const totalPages = Math.ceil(totalRecords / recordsPerPage);
-				
-					// Calculate the offset for the SQL query based on the current page
-					var offset = (page - 1) * recordsPerPage;
-					console.log("node_2_total_pages: " + node_2_total_pages);
+	// Start Transaction
+	node_1.query('START TRANSACTION', function(err){
+		if(err){
+			// Start Transaction Node 2
+			console.log('NODE 2 transaction started.');
+			node_2.query('START TRANSACTION', function(err){
+				if(err) {
+					console.error('Error querying node_2 MySQL database: ' + err.stack);
+					res.status(500).send('Error querying MySQL database');
+					return;
+				}
+				else{
 					// Retrieve the data for the current page
-					if(node_2_total_pages >= page){
-						console.log("node_2");
-						node_2.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					else{
-						console.log("node_3");
-						offset = (page - 1 - node_2_total_pages) * recordsPerPage;
-						node_3.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					
-				});
-				
+					node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
+						if (err) {
+							node_2.query('ROLLBACK', function() {
+								console.log('NODE 2 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							var totalRecords = result[0].total;
+							// Calculate the total number of pages
+							var totalPages = Math.ceil(totalRecords / recordsPerPage);
+							var node_2_total_pages = totalPages;
+
+							// Start transaction Node 3
+							console.log('NODE 3 transaction started.');
+							node_3.query('START TRANSACTION', function(err){
+								if (err){
+									node_2.query('ROLLBACK', function() {
+										console.log('NODE 2 transaction rolled back.');
+										console.error('Error querying node_3 MySQL database: ' + err.stack);
+										res.status(500).send('Error querying MySQL database');
+									});
+									
+								}
+								else{
+									// Retrieve the data for the current page
+									node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, data) => {
+										if (err) {
+											node_2.query('ROLLBACK', function() {
+												console.log('NODE 2 transaction rolled back.');
+												node_3.query('ROLLBACK', function() {
+													console.log('NODE 3 transaction rolled back.');
+												});
+											  throw err;
+											});
+										}
+										else{
+											node_2.query('COMMIT', function(err){
+												if(err){
+													node_2.query('ROLLBACK', function() {
+														console.log('NODE 2 transaction rolled back.');
+														node_3.query('ROLLBACK', function() {
+															console.log('NODE 3 transaction rolled back.');
+														});
+													  throw err;
+													});
+												}
+												else{
+													node_3.query('COMMIT', function(err){
+														if(err){
+															node_3.query('ROLLBACK', function() {
+																console.log('NODE 3 transaction rolled back.');
+																
+															  throw err;
+															});
+														}
+														else{
+															totalRecords += data[0].total;
+									
+															// Calculate the total number of pages
+															const totalPages = Math.ceil(totalRecords / recordsPerPage);
+														
+															// Calculate the offset for the SQL query based on the current page
+															var offset = (page - 1) * recordsPerPage;
+															console.log("node_2_total_pages: " + node_2_total_pages);
+															// Retrieve the data for the current page
+															if(node_2_total_pages >= page){
+																console.log("node_2");
+																node_2.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+															else{
+																console.log("node_3");
+																offset = (page - 1 - node_2_total_pages) * recordsPerPage;
+																node_3.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+														}
+													})
+												}
+											});
+											
+										}
+										
+										
+									});
+								}
+							});
+							
+						}
+						
+						
+					});
+				}
 			});
 		}
 		else{
-			const totalRecords = result[0].total;
+			console.log('NODE 1 transaction started.');
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
+				if (err){
+					node_1.query('ROLLBACK', function() {
+						console.log('NODE 1 transaction rolled back.');
+						throw err;
+					});
+				}
+				else{
+					node_1.query('COMMIT', function(err){
+						if(err){
+							node_1.query('ROLLBACK', function() {
+								console.log('NODE 1 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							const totalRecords = result[0].total;
 	
-			// Calculate the total number of pages
-			const totalPages = Math.ceil(totalRecords / recordsPerPage);
-		
-			// Calculate the offset for the SQL query based on the current page
-			const offset = (page - 1) * recordsPerPage;
-		
-			// Retrieve the data for the current page
-			node_1.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-				if (err) throw err;
-				res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							// Calculate the total number of pages
+							const totalPages = Math.ceil(totalRecords / recordsPerPage);
+						
+							// Calculate the offset for the SQL query based on the current page
+							const offset = (page - 1) * recordsPerPage;
+						
+							// Retrieve the data for the current page
+							node_1.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+								if (err) throw err;
+								res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							});
+						}
+					});
+					
+				}
 			});
 		}
-		
 	});
     
 });
@@ -313,63 +580,156 @@ app.post('/search/:page', (req, res) => {
 	const search_attribute = req.session.search_attribute = search.attribute;
 	const search_input = req.session.search_input = search.search_input;
 
-    // Retrieve the total number of records in the database table
-	node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
-		if (err) {
-			node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
-				if (err) throw err;
-				var totalRecords = result[0].total;
-				// Calculate the total number of pages
-				var totalPages = Math.ceil(totalRecords / recordsPerPage);
-				var node_2_total_pages = totalPages;
-				// Retrieve the data for the current page
-				node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, data) => {
-					if (err) throw err;
-					totalRecords += data[0].total;
-				
-					// Calculate the total number of pages
-					const totalPages = Math.ceil(totalRecords / recordsPerPage);
-				
-					// Calculate the offset for the SQL query based on the current page
-					var offset = (page - 1) * recordsPerPage;
-					console.log("node_2_total_pages: " + node_2_total_pages);
+	// Start Transaction
+	node_1.query('START TRANSACTION', function(err){
+		if(err){
+			// Start Transaction Node 2
+			console.log('NODE 2 transaction started.');
+			node_2.query('START TRANSACTION', function(err){
+				if(err) {
+					console.error('Error querying node_2 MySQL database: ' + err.stack);
+					res.status(500).send('Error querying MySQL database');
+					return;
+				}
+				else{
 					// Retrieve the data for the current page
-					if(node_2_total_pages >= page){
-						console.log("node_2");
-						node_2.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					else{
-						console.log("node_3");
-						offset = (page - 1 - node_2_total_pages) * recordsPerPage;
-						node_3.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-							if (err) throw err;
-							res.render('index', { movies: results, current_page: page, total_pages: totalPages});
-						});
-					}
-					
-				});
-				
+					node_2.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
+						if (err) {
+							node_2.query('ROLLBACK', function() {
+								console.log('NODE 2 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							var totalRecords = result[0].total;
+							// Calculate the total number of pages
+							var totalPages = Math.ceil(totalRecords / recordsPerPage);
+							var node_2_total_pages = totalPages;
+
+							// Start transaction Node 3
+							console.log('NODE 3 transaction started.');
+							node_3.query('START TRANSACTION', function(err){
+								if (err){
+									node_2.query('ROLLBACK', function() {
+										console.log('NODE 2 transaction rolled back.');
+										console.error('Error querying node_3 MySQL database: ' + err.stack);
+										res.status(500).send('Error querying MySQL database');
+									});
+									
+								}
+								else{
+									// Retrieve the data for the current page
+									node_3.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, data) => {
+										if (err) {
+											node_2.query('ROLLBACK', function() {
+												console.log('NODE 2 transaction rolled back.');
+												node_3.query('ROLLBACK', function() {
+													console.log('NODE 3 transaction rolled back.');
+												});
+											  throw err;
+											});
+										}
+										else{
+											node_2.query('COMMIT', function(err){
+												if(err){
+													node_2.query('ROLLBACK', function() {
+														console.log('NODE 2 transaction rolled back.');
+														node_3.query('ROLLBACK', function() {
+															console.log('NODE 3 transaction rolled back.');
+														});
+													  throw err;
+													});
+												}
+												else{
+													node_3.query('COMMIT', function(err){
+														if(err){
+															node_3.query('ROLLBACK', function() {
+																console.log('NODE 3 transaction rolled back.');
+																
+															  throw err;
+															});
+														}
+														else{
+															totalRecords += data[0].total;
+									
+															// Calculate the total number of pages
+															const totalPages = Math.ceil(totalRecords / recordsPerPage);
+														
+															// Calculate the offset for the SQL query based on the current page
+															var offset = (page - 1) * recordsPerPage;
+															console.log("node_2_total_pages: " + node_2_total_pages);
+															// Retrieve the data for the current page
+															if(node_2_total_pages >= page){
+																console.log("node_2");
+																node_2.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+															else{
+																console.log("node_3");
+																offset = (page - 1 - node_2_total_pages) * recordsPerPage;
+																node_3.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+																	if (err) throw err;
+																	res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+																});
+															}
+														}
+													})
+												}
+											});
+											
+										}
+										
+										
+									});
+								}
+							});
+							
+						}
+						
+						
+					});
+				}
 			});
 		}
 		else{
-			const totalRecords = result[0].total;
+			console.log('NODE 1 transaction started.');
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
+				if (err){
+					node_1.query('ROLLBACK', function() {
+						console.log('NODE 1 transaction rolled back.');
+						throw err;
+					});
+				}
+				else{
+					node_1.query('COMMIT', function(err){
+						if(err){
+							node_1.query('ROLLBACK', function() {
+								console.log('NODE 1 transaction rolled back.');
+								throw err;
+							});
+						}
+						else{
+							const totalRecords = result[0].total;
 	
-			// Calculate the total number of pages
-			const totalPages = Math.ceil(totalRecords / recordsPerPage);
-		
-			// Calculate the offset for the SQL query based on the current page
-			const offset = (page - 1) * recordsPerPage;
-		
-			// Retrieve the data for the current page
-			node_1.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
-				if (err) throw err;
-				res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							// Calculate the total number of pages
+							const totalPages = Math.ceil(totalRecords / recordsPerPage);
+						
+							// Calculate the offset for the SQL query based on the current page
+							const offset = (page - 1) * recordsPerPage;
+						
+							// Retrieve the data for the current page
+							node_1.query(`SELECT * FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute} LIMIT ? OFFSET ?`, [recordsPerPage, offset], (err, results) => {
+								if (err) throw err;
+								res.render('index', { movies: results, current_page: page, total_pages: totalPages});
+							});
+						}
+					});
+					
+				}
 			});
 		}
-		
 	});
     
 });
@@ -477,24 +837,6 @@ app.post('/insert', (req, res) => {
 						}
 
 					})
-
-
-					
-					
-					// const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
-					// const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-					
-					// node_1.query(statement, values, (err, results) => {
-					// 	if (err) {
-					// 		console.error('Error querying MySQL database: ' + err.stack);
-					// 		res.status(500).send('Error querying MySQL database');
-					// 		return;
-					// 	}
-					// 	else {
-					// 		console.log("Successfully Inserted Data");
-					// 		res.redirect('/');
-					// 	}
-					// })
 				}
 			});
 
