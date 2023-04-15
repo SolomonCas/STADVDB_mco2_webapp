@@ -1055,7 +1055,12 @@ app.post('/update', (req, res) => {
 							  VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), \`rank\`), ?, ?, ?)
 							  ON DUPLICATE KEY UPDATE 
 							  name = COALESCE(NULLIF(VALUES(name), ''), name), year = COALESCE(NULLIF(VALUES(year), ''), year), \`rank\` = VALUES(\`rank\`), genre = COALESCE(NULLIF(VALUES(genre), ''), genre), director_first_name = COALESCE(NULLIF(VALUES(director_first_name), ''), director_first_name), director_last_name = COALESCE(NULLIF(VALUES(director_last_name), ''), director_last_name)`;
-
+	const log_delete_statement = `DELETE FROM movies WHERE id = ${movie.update_id}`
+	const log_insert_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name)
+								  VALUES (${movie.update_id}, \"${movie.update_name}\", ${movie.update_year}, COALESCE(NULLIF(\"${movie.update_rank}\", ''), \`rank\`), \"${movie.update_genre}\", \"${movie.update_director_first_name}\", \"${movie.update_director_last_name}\")
+								  ON DUPLICATE KEY UPDATE 
+								  name = COALESCE(NULLIF(VALUES(name), ''), name), year = COALESCE(NULLIF(VALUES(year), ''), year), \`rank\` = VALUES(\`rank\`), genre = COALESCE(NULLIF(VALUES(genre), ''), genre), director_first_name = COALESCE(NULLIF(VALUES(director_first_name), ''), director_first_name), director_last_name = COALESCE(NULLIF(VALUES(director_last_name), ''), director_last_name)`;
+	const log_update_statement = `UPDATE movies SET name = COALESCE(NULLIF(\"${movie.update_name}\", ''), name), year = COALESCE(NULLIF(${movie.update_year}, ''), year), \`rank\` = COALESCE(NULLIF(\"${movie.update_rank}\", ''), \`rank\`), genre = COALESCE(NULLIF(\"${movie.update_genre}\", ''), genre), director_first_name = COALESCE(NULLIF(\"${movie.update_director_first_name}\", ''), director_first_name), director_last_name = COALESCE(NULLIF(\"${movie.update_director_last_name}\", ''), director_last_name) WHERE id = ${movie.update_id}`
 	if(movie.update_id == ''){
 		res.redirect('/');
 	}
@@ -1063,6 +1068,7 @@ app.post('/update', (req, res) => {
 		node_1.query('START TRANSACTION', function(err) {
 			if (err) {
 				if (movie.update_year < 1980) {
+					console.log('NODE 2 transaction started.');
 					node_2.query('START TRANSACTION', function(err) {
 						if (err) {
 							node_2.query('ROLLBACK', function() {
@@ -1071,69 +1077,161 @@ app.post('/update', (req, res) => {
 							});
 						}
 						else {
-							node_2.query(statement, values, (err, results) => {
-								if (err) {
-									node_1.query('ROLLBACK', function() {
+							node_3.query('START TRANSACTION', function(err){
+								if (err){
+									node_2.query('ROLLBACK', function() {
 										console.log('NODE 2 transaction rolled back.');
-									  	throw err;
+									  throw err;
 									});
 								}
-								else {
-									node_2.query('COMMIT', function(err) {
+								else{
+									node_3.query(delete_statement, movie.update_id, (err, results) => {
 										if (err) {
-											node_3.query('ROLLBACK', function() {
+											node_2.query('ROLLBACK', function() {
 												console.log('NODE 2 transaction rolled back.');
+												node_3.query('ROLLBACK', function() {
+													console.log('NODE 3 transaction rolled back.');
+												});
 												throw err;
 											});
 										}
 										else {
-											console.log('NODE 2 transaction completed successfully.');
-											console.log('Successfully updated data with id: ' + movie.update_id);
-											res.redirect('/');
+											node_3.query("COMMIT", function(err){
+												if(err){
+													node_2.query('ROLLBACK', function() {
+														console.log('NODE 2 transaction rolled back.');
+														node_3.query('ROLLBACK', function() {
+															console.log('NODE 3 transaction rolled back.');
+														});
+														throw err;
+													});
+												}
+												else{
+													node_2.query(insert_statement, move_values, function(err) {
+														if (err) {
+															node_2.query('ROLLBACK', function() {
+																console.log('NODE 2 transaction rolled back.');
+																throw err;
+															});
+														}
+														else {
+															node_2.query("COMMIT",  function(err){
+																if(err) {
+																	node_2.query('ROLLBACK', function() {
+																		console.log('NODE 2 transaction rolled back.');
+																		throw err;
+																	});
+																}
+																else{
+																	console.log('NODE 2 transaction completed successfully.');
+																	console.log('Successfully updated data with id: ' + movie.update_id);
+						
+																	node_2.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_update_statement, 1], function(err){
+																		if(err) throw err;
+																		console.log('Added log to Node 2');
+																	});
+						
+																	res.redirect('/');
+																}
+															});
+															
+														}
+													});			
+												}
+											});
+											
 										}
-									});
+									})
 								}
-							})
+							});
+							
 						}
 					})
 				}
 				else {
+					console.log('NODE 3 transaction started.');
 					node_3.query('START TRANSACTION', function(err) {
 						if (err) {
 							node_3.query('ROLLBACK', function() {
-								console.log('NODE 3 transaction rolled back.');
-							  	throw err;
+								console.log('NODE 2 transaction rolled back.');
+							  throw err;
 							});
 						}
 						else {
-							node_3.query(statement, values, (err, results) => {
-								if (err) {
+							node_2.query('START TRANSACTION', function(err){
+								if (err){
 									node_3.query('ROLLBACK', function() {
-										console.log('NODE 3 transaction rolled back.');
+										console.log('NODE 2 transaction rolled back.');
 									  throw err;
 									});
 								}
-								else {
-									node_3.query('COMMIT', function(err) {
+								else{
+									node_2.query(delete_statement, movie.update_id, (err, results) => {
 										if (err) {
 											node_3.query('ROLLBACK', function() {
-												console.log('NODE 3 transaction rolled back.');
+												console.log('NODE 2 transaction rolled back.');
+												node_2.query('ROLLBACK', function() {
+													console.log('NODE 3 transaction rolled back.');
+												});
 												throw err;
 											});
 										}
 										else {
-											console.log('Node 3 transaction completed successfully.');
-											console.log('Successfully updated data with id: ' + movie.update_id);
-											res.redirect('/');
+											node_2.query("COMMIT", function(err){
+												if(err){
+													node_3.query('ROLLBACK', function() {
+														console.log('NODE 2 transaction rolled back.');
+														node_2.query('ROLLBACK', function() {
+															console.log('NODE 3 transaction rolled back.');
+														});
+														throw err;
+													});
+												}
+												else{
+													node_3.query(insert_statement, move_values, function(err) {
+														if (err) {
+															node_3.query('ROLLBACK', function() {
+																console.log('NODE 2 transaction rolled back.');
+																throw err;
+															});
+														}
+														else {
+															node_3.query("COMMIT",  function(err){
+																if(err) {
+																	node_3.query('ROLLBACK', function() {
+																		console.log('NODE 2 transaction rolled back.');
+																		throw err;
+																	});
+																}
+																else{
+																	console.log('NODE 2 transaction completed successfully.');
+																	console.log('Successfully updated data with id: ' + movie.update_id);
+						
+																	node_2.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_update_statement, 1], function(err){
+																		if(err) throw err;
+																		console.log('Added log to Node 2');
+																	});
+						
+																	res.redirect('/');
+																}
+															});
+															
+														}
+													});			
+												}
+											});
+											
 										}
-									});
+									})
 								}
-							})
+							});
+							
 						}
 					})
 				}
 			}
 			else {
+				// ---------------------------------------------------------
 				console.log('NODE 1 transaction started.');
 				node_1.query(statement, values, (err, results) => {
 					if (err) {
@@ -1158,12 +1256,20 @@ app.post('/update', (req, res) => {
 								if (movie.update_year < 1980) {
 									node_3.query(delete_statement, movie.update_id, (err, results) => {
 										if (err) {
-											throw err;
+											console.log('Error delete statement in Node 3');
+											node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_delete_statement, 3], function(err){
+												if (err) throw err;
+												console.log('Added delete log to Node 1');
+											});
 										}
 									})
 									node_2.query(insert_statement, move_values, (err, results) => {
 										if (err) {
-											throw err;
+											console.log('Error insert statement in Node 2');
+											node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_insert_statement, 2], function(err){
+												if (err) throw err;
+												console.log('Added update log to Node 1');
+											});
 										}
 									})
 									console.log("Updated Slave Nodes");
@@ -1172,13 +1278,21 @@ app.post('/update', (req, res) => {
 								else if (movie.update_year >= 1980) {
 									node_2.query(delete_statement, movie.update_id, (err, results) => {
 										if (err) {
-											throw err;
+											console.log('Error delete statement in Node 3');
+											node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_delete_statement, 2], function(err){
+												if (err) throw err;
+												console.log('Added delete log to Node 1');
+											});
 										}
 
 									})
 									node_3.query(insert_statement, move_values, (err, results) => {
 										if (err) {
-											throw err;
+											console.log('Error delete statement in Node 3');
+											node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_insert_statement, 3], function(err){
+												if (err) throw err;
+												console.log('Added delete log to Node 1');
+											});
 										}
 									})
 
