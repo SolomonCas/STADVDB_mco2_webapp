@@ -1197,10 +1197,12 @@ app.post('/update', (req, res) => {
 });
 
 app.post('/delete', (req, res) => {
-
+	
 	const movie = req.body;
-	const statement = `DELETE FROM movies WHERE id = ?`;
 	const values = [movie.id];
+	const statement = `DELETE FROM movies WHERE id = ?`;
+	const log_statement = `DELETE FROM movies WHERE id = ${movie.id}`
+	
 
 	node_1.query('START TRANSACTION', function(err) {
 		if (err) {
@@ -1231,12 +1233,19 @@ app.post('/delete', (req, res) => {
 									else {
 										console.log('NODE 2 transaction completed successfully.');
 										console.log('Successfully deleted data with id: ' + movie.id);
+
+										node_2.query(`INSERT INTO logs (sql_statement, node) VALUES (?,?)`, [log_statement, 1], function(err){
+											if (err) throw err;
+											console.log('Added log to Node 2');
+										});
+
 										res.status(200).send();
 										return;
 									}
 								  });
 							}
 						})
+
 					}
 				})
 			}
@@ -1267,6 +1276,11 @@ app.post('/delete', (req, res) => {
 									else {
 										console.log('NODE 3 transaction completed successfully.');
 										console.log('Successfully deleted data with id: ' + movie.id);
+
+										node_2.query(`INSERT INTO logs (sql_statement, node) VALUES (?,?)`, [log_statement, 1], function(err){
+											if (err) throw err;
+											console.log('Added log to Node 2');
+										});
 										res.status(200).send();
 										return;
 									}
@@ -1300,7 +1314,10 @@ app.post('/delete', (req, res) => {
 								node_2.query(statement, values, (err, results) => {
 									if (err){
 										console.log('Error deleting in node 2');
-										throw err;
+										node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?,?)`, [log_statement, 2], function(err){
+											if (err) throw err;
+											console.log('Added log to Node 2');
+										});
 									}
 									else {
 										console.log('Replicated to Slave Nodes');
@@ -1311,7 +1328,10 @@ app.post('/delete', (req, res) => {
 								node_3.query(statement, values, (err, results) => {
 									if (err){
 										console.log('Error deleting in node 3');
-										throw err;
+										node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?,?)`, [log_statement, 3], function(err){
+											if (err) throw err;
+											console.log('Added log to Node 3');
+										});
 									}
 									else {
 										console.log('Replicated to Slave Nodes');
