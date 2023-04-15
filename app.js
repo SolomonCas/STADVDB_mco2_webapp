@@ -377,108 +377,173 @@ app.post('/search/:page', (req, res) => {
 
 app.post('/insert', (req, res) => {
 	const movie = req.body;
-		node_1.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
-			if (err) {
-				node_2.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
-					if (err) {
-						console.error('Error querying node_2 MySQL database: ' + err.stack);
-						res.status(500).send('Error querying MySQL database');
-						return;
-					}
-					else {
-						new_id1 = resp[0].new;
-						console.log("new_id1: " + new_id1);
-						
-						node_3.query(`SELECT max(id) + 1 AS new FROM movies`, (err,resp) => {
-							if (err){
-								console.error('Error querying node_2 MySQL database: ' + err.stack);
-								res.status(500).send('Error querying MySQL database');
-								return;
+	node_1.query('START TRANSACTION', function(err) {
+		if (err) {
+			node_2.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
+				if (err) {
+					throw err;
+				}
+				else {
+					new_id1 = resp[0].new;
+					console.log("new_id1: " + new_id1);
+					
+					node_3.query(`SELECT max(id) + 1 AS new FROM movies`, (err,resp) => {
+						if (err){
+							console.error('Error querying node_2 MySQL database: ' + err.stack);
+							res.status(500).send('Error querying MySQL database');
+							return;
+						}
+						else {
+							
+							var max;
+							new_id2 = resp[0].new;
+							console.log("new_id2: " + new_id2);
+							if(new_id1 > new_id2){
+								max = new_id1
+							} 
+							else{
+								max = new_id2
 							}
-							else {
-								
-								var max;
-								new_id2 = resp[0].new;
-								console.log("new_id2: " + new_id2);
-								if(new_id1 > new_id2){
-									max = new_id1
-								} 
-								else{
-									max = new_id2
-								}
-								console.log(max)
+							console.log(max)
 
-								const values = [max, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
-								const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-								
-								if(movie.year >= 1980){
-									node_3.query(statement, values, (err, results) => {
-										if (err) {
-											console.error('Error querying MySQL database: ' + err.stack);
-											res.status(500).send('Error querying MySQL database');
-											return;
-										}
-										else {
-											console.log("Successfully Inserted Data");
-											res.redirect('/');
-										}
-									})
-								}
-								else{
-									node_2.query(statement, values, (err, results) => {
-										if (err) {
-											console.error('Error querying MySQL database: ' + err.stack);
-											res.status(500).send('Error querying MySQL database');
-											return;
-										}
-										else {
-											console.log("Successfully Inserted Data");
-											res.redirect('/');
-										}
-									})
-								}
-
+							const values = [max, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+							const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
+							
+							if(movie.year >= 1980){
+								node_3.query('START TRANSACTION', function(err) {
+									if (err) {
+										console.error('Error querying MySQL database: ' + err.stack);
+										res.status(500).send('Error querying MySQL database');
+										return;
+									}
+									else {
+										node_3.query(statement, values, (err, results) => {
+											if (err) {
+												console.error('Error querying MySQL database: ' + err.stack);
+												res.status(500).send('Error querying MySQL database');
+												return;
+											}
+											else {
+												node_3.query('COMMIT', function(err) {
+													if (err) {
+														node_3.query('ROLLBACK', function() {
+															console.log('NODE 3 transaction rolled back.');
+															throw err;
+														  });
+													}
+													else {
+														console.log('NODE 3 transaction completed successfully.');
+														console.log('Successfully inserted data with id: ' + max);
+														res.redirect('/');
+													}
+												  });
+											}
+										})
+									}
+								})
+							}
+							else{
+								node_2.query('START TRANSACTION', function(err) {
+									if (err) {
+										throw err;
+									}
+									else {
+										node_2.query(statement, values, (err, results) => {
+											if (err) {
+												console.error('Error querying MySQL database: ' + err.stack);
+												res.status(500).send('Error querying MySQL database');
+												return;
+											}
+											else {
+												node_2.query('COMMIT', function(err) {
+													if (err) {
+														node_2.query('ROLLBACK', function() {
+															console.log('NODE 2 transaction rolled back.');
+															throw err;
+														  });
+													}
+													else {
+														console.log('NODE 2 transaction completed successfully.');
+														console.log('Successfully inserted data with id: ' + max);
+														res.redirect('/');
+													}
+												  });
+											}
+										})
+									}
+								})
 							}
 
-						})
+						}
 
-						// const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
-						// const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-						
-						// node_1.query(statement, values, (err, results) => {
-						// 	if (err) {
-						// 		console.error('Error querying MySQL database: ' + err.stack);
-						// 		res.status(500).send('Error querying MySQL database');
-						// 		return;
-						// 	}
-						// 	else {
-						// 		console.log("Successfully Inserted Data");
-						// 		res.redirect('/');
-						// 	}
-						// })
-					}
-				});
-			}
-			else {
-				new_id = resp[0].new;
-				console.log("new_id: " + new_id);
-				
-				const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
-				const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-				
-				node_1.query(statement, values, (err, results) => {
-					if (err) {
-						console.error('Error querying MySQL database: ' + err.stack);
-						res.status(500).send('Error querying MySQL database');
-						return;
-					}
-					else {
-						console.log("Successfully Inserted Data");
-						res.redirect('/');
-					}
-				})
-			}
-		});
+					})
+
+
+					
+					
+					// const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+					// const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
+					
+					// node_1.query(statement, values, (err, results) => {
+					// 	if (err) {
+					// 		console.error('Error querying MySQL database: ' + err.stack);
+					// 		res.status(500).send('Error querying MySQL database');
+					// 		return;
+					// 	}
+					// 	else {
+					// 		console.log("Successfully Inserted Data");
+					// 		res.redirect('/');
+					// 	}
+					// })
+				}
+			});
+
+
+		}
+		else {
+			// ---------------------------------------------------------
+			console.log('NODE 1 transaction started.');
+			node_1.query(`SELECT max(id) + 1 AS new FROM movies`, (err, resp) => {
+				if (err) {
+					node_1.query('ROLLBACK', function() {
+						console.log('NODE 1 transaction rolled back.');
+					  throw err;
+					});
+				}
+				else {
+					new_id = resp[0].new;
+					console.log("new_id: " + new_id);
+					
+					const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
+					const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
+					
+					node_1.query(statement, values, (err, results) => {
+						if (err) {
+							node_1.query('ROLLBACK', function() {
+								console.log('NODE 1 transaction rolled back.');
+							  	throw err;
+							});
+						}
+						else {
+							node_1.query('COMMIT', function(err) {
+								if (err) {
+									node_1.query('ROLLBACK', function() {
+										console.log('NODE 1 transaction rolled back.');
+										throw err;
+									  });
+								}
+								else {
+									console.log('NODE 1 transaction completed successfully.');
+									console.log('Successfully inserted data with id: ' + new_id);
+									res.redirect('/');
+								}
+							  });
+						}
+					})
+				}
+			});
+		}
+	})
 	
 });
 
@@ -579,7 +644,7 @@ app.post('/update', (req, res) => {
 								node_1.query('ROLLBACK', function() {
 									console.log('NODE 1 transaction rolled back.');
 									throw err;
-							  	});
+								  });
 							}
 							else {
 								console.log('NODE 1 transaction completed successfully.');
@@ -601,31 +666,109 @@ app.post('/delete', (req, res) => {
 	const movie = req.body;
 	const statement = `DELETE FROM movies WHERE id = ?`;
 	const values = [movie.id];
-	node_1.query(statement, values, (err, rows, fields) => {
+
+	node_1.query('START TRANSACTION', function(err) {
 		if (err) {
 			if (movie.year < 1980) {
-				node_2.query(statement, values, (err, results) => {
-					if (err) throw err;
-					console.log('Successfully Deleted Data node2');
-					res.status(200).send();
-					return;
+				node_2.query('START TRANSACTION', function(err) {
+					if (err) {
+						node_2.query('ROLLBACK', function() {
+							console.log('NODE 2 transaction rolled back.');
+							throw err;
+						});
+					}
+					else {
+						node_2.query(statement, values, (err, results) => {
+							if (err) {
+								node_2.query('ROLLBACK', function() {
+									console.log('NODE 2 transaction rolled back.');
+									throw err;
+								});
+							}
+							else {
+								node_2.query('COMMIT', function(err) {
+									if (err) {
+										node_2.query('ROLLBACK', function() {
+											console.log('NODE 2 transaction rolled back.');
+											throw err;
+										  });
+									}
+									else {
+										console.log('NODE 2 transaction completed successfully.');
+										console.log('Successfully deleted data with id: ' + movie.id);
+										res.status(200).send();
+										return;
+									}
+								  });
+							}
+						})
+					}
 				})
 			}
 			else {
-				node_3.query(statement, values, (err, results) => {
-					if (err) throw err;
-					console.log('Successfully Deleted Data node3');
-					res.status(200).send();
-					return;
+				node_3.query('START TRANSACTION', function(err) {
+					if (err) {
+						node_3.query('ROLLBACK', function() {
+							console.log('NODE 3 transaction rolled back.');
+							throw err;
+						});
+					}
+					else {
+						node_3.query(statement, values, (err, results) => {
+							if (err) {
+								node_3.query('ROLLBACK', function() {
+									console.log('NODE 3 transaction rolled back.');
+									throw err;
+								  });
+							}
+							else {
+								node_3.query('COMMIT', function(err) {
+									if (err) {
+										node_3.query('ROLLBACK', function() {
+											console.log('NODE 3 transaction rolled back.');
+											throw err;
+										  });
+									}
+									else {
+										console.log('NODE 3 transaction completed successfully.');
+										console.log('Successfully deleted data with id: ' + movie.id);
+										res.status(200).send();
+										return;
+									}
+								  });
+							}
+						})
+					}
 				})
 			}
 		}
 		else {
-			console.log('Successfully Deleted Data node1');
-			res.status(200).send();
-			return;
+			node_1.query(statement, values, (err, rows, fields) => {
+				if (err) {
+					node_1.query('ROLLBACK', function() {
+						console.log('NODE 1 transaction rolled back.');
+						throw err;
+					});
+				}
+				else {
+					node_1.query('COMMIT', function(err) {
+						if (err) {
+							node_1.query('ROLLBACK', function() {
+								console.log('NODE 1 transaction rolled back.');
+								throw err;
+							  });
+						}
+						else {
+							console.log('NODE 1 transaction completed successfully.');
+							console.log('Successfully deleted data with id: ' + movie.id);
+							res.status(200).send();
+							return;
+						}
+					  });
+				}
+			});
 		}
-	});
+	})
 });
 
 app.listen(80, () => {
