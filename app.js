@@ -21,6 +21,7 @@ app.use(session({
 
 
 app.get('/', (req, res) => {
+	
 	res.redirect("/1");
 });
 
@@ -768,7 +769,7 @@ app.post('/insert', (req, res) => {
 
 							const values = [max, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
 							const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-							
+							const log_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${max}, ${movie.name}, ${movie.year}, COALESCE(NULLIF(${movie.rank}, ''), NULL), COALESCE(NULLIF(${movie.genre}, ''), NULL), COALESCE(NULLIF(${movie.director_first_name}, ''), NULL), COALESCE(NULLIF(${movie.director_last_name}, ''), NULL))`;
 							if(movie.year >= 1980){
 								node_3.query('START TRANSACTION', function(err) {
 									if (err) {
@@ -792,8 +793,15 @@ app.post('/insert', (req, res) => {
 														  });
 													}
 													else {
+														
 														console.log('NODE 3 transaction completed successfully.');
 														console.log('Successfully inserted data with id: ' + max);
+														
+														node_2.query(`INSERT INTO logs (sql_statement, node) VALUES (?,?)`, [log_statement, 1], function(err){
+															if (err) throw err;
+															console.log('Added log to Node 2');
+														});
+														
 														res.redirect('/');
 													}
 												  });
@@ -825,6 +833,13 @@ app.post('/insert', (req, res) => {
 													else {
 														console.log('NODE 2 transaction completed successfully.');
 														console.log('Successfully inserted data with id: ' + max);
+
+														node_2.query(`INSERT INTO logs (sql_statement, node) VALUES (?,?)`, [log_statement, 1], function(err){
+															if (err) throw err;
+															console.log('Added log to Node 2');
+														});
+														
+
 														res.redirect('/');
 													}
 												  });
@@ -858,7 +873,7 @@ app.post('/insert', (req, res) => {
 					
 					const values = [new_id, movie.name, movie.year, movie.rank, movie.genre, movie.director_first_name, movie.director_last_name];
 					const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
-					
+					const log_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${new_id}, ${movie.name}, ${movie.year}, COALESCE(NULLIF(${movie.rank}, ''), NULL), COALESCE(NULLIF(${movie.genre}, ''), NULL), COALESCE(NULLIF(${movie.director_first_name}, ''), NULL), COALESCE(NULLIF(${movie.director_last_name}, ''), NULL))`;
 					node_1.query(statement, values, (err, results) => {
 						if (err) {
 							node_1.query('ROLLBACK', function() {
@@ -884,7 +899,11 @@ app.post('/insert', (req, res) => {
 										node_2.query(statement, values, (err, results) => {
 											if (err){
 												console.log('Error inserting to node 2');
-												throw err;
+												
+												node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_statement, 2], function(err){
+													if (err) throw err;
+													console.log('Added log to Node 1');
+												});
 											}
 											else{
 												console.log('Replicated to Slave Nodes');
@@ -895,7 +914,10 @@ app.post('/insert', (req, res) => {
 										node_3.query(statement, values, (err, results) => {
 											if (err){
 												console.log('Error inserting to node 3');
-												throw err;
+												node_1.query(`INSERT INTO logs (sql_statement, node) VALUES (?, ?)`, [log_statement, 3], function(err){
+													if (err) throw err;
+													console.log('Added log to Node 1');
+												});
 											}
 											else {
 												console.log('Replicated to Slave Nodes');
