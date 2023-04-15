@@ -20,12 +20,56 @@ app.use(session({
   }));
 
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+	console.log("@/");
+	node_1.query(`SELECT * FROM logs`, function(err, result){
+		if(err){
+			console.log(err);
+			return;
+		}
+		else{
+			console.log("REPLICATING DATA USING NODE 1")
+			for(let log of result) {
+				if(log.node == 2){
+					node_2.query(log.sql_statement, function(err){
+						if (err){
+							console.log(err);
+							return;
+						}
+						else{
+							node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err){
+								if (err) throw err;
+								console.log('SUCCESSFULLY REMOVE LOG');
+								return;
+							});
+						}
+					})
+				}
+				else{
+					node_3.query(log.sql_statement, function(err){
+						if (err){
+							console.log(err);
+							return;
+						}
+						else{
+							node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err){
+								if (err) throw err;
+								console.log('SUCCESSFULLY REMOVE LOG');
+								return;
+							});
+						}
+					});
+				}
+			}		
+		}
+			
+	});
 	
-	res.redirect("/1");
+	
 });
 
 app.get('/:page', (req, res) => {
+	console.log("@/:page");
 	if (req.params.page === 'favicon.ico') {
 		res.status(204).end(); // return a "no content" response
 	} else {
