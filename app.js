@@ -877,6 +877,31 @@ app.post('/insert', (req, res) => {
 								else {
 									console.log('NODE 1 transaction completed successfully.');
 									console.log('Successfully inserted data with id: ' + new_id);
+
+
+									//INSERT IN EITHER NODE 2 OR NODE 3
+									if (movie.year < 1980) {
+										node_2.query(statement, values, (err, results) => {
+											if (err){
+												console.log('Error inserting to node 2');
+												throw err;
+											}
+											else{
+												console.log('Replicated to Slave Nodes');
+											}
+										})
+									}
+									else {
+										node_3.query(statement, values, (err, results) => {
+											if (err){
+												console.log('Error inserting to node 3');
+												throw err;
+											}
+											else {
+												console.log('Replicated to Slave Nodes');
+											}
+										})
+									}
 									res.redirect('/');
 								}
 							  });
@@ -894,6 +919,13 @@ app.post('/update', (req, res) => {
 	const movie = req.body;
 	const statement = `UPDATE movies SET name = COALESCE(NULLIF(?, ''), name), year = COALESCE(NULLIF(?, ''), year), \`rank\` = COALESCE(NULLIF(?, ''), \`rank\`), genre = COALESCE(NULLIF(?, ''), genre), director_first_name = COALESCE(NULLIF(?, ''), director_first_name), director_last_name = COALESCE(NULLIF(?, ''), director_last_name) WHERE id = ?`;
 	const values = [movie.update_name, movie.update_year, movie.update_rank, movie.update_genre, movie.update_director_first_name, movie.update_director_last_name, movie.update_id];
+	const move_values = [movie.update_id, movie.update_name, movie.update_year, movie.update_rank, movie.update_genre, movie.update_director_first_name, movie.update_director_last_name];
+	const delete_statement = `DELETE FROM movies WHERE id = ?`
+	const insert_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name)
+							  VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), \`rank\`), ?, ?, ?)
+							  ON DUPLICATE KEY UPDATE 
+							  name = COALESCE(NULLIF(VALUES(name), ''), name), year = COALESCE(NULLIF(VALUES(year), ''), year), \`rank\` = VALUES(\`rank\`), genre = COALESCE(NULLIF(VALUES(genre), ''), genre), director_first_name = COALESCE(NULLIF(VALUES(director_first_name), ''), director_first_name), director_last_name = COALESCE(NULLIF(VALUES(director_last_name), ''), director_last_name)`;
+
 	if(movie.update_id == ''){
 		res.redirect('/');
 	}
@@ -991,6 +1023,37 @@ app.post('/update', (req, res) => {
 							else {
 								console.log('NODE 1 transaction completed successfully.');
 								console.log('Successfully updated data with id: ' + movie.update_id);
+								
+								//UPDATE IN EITHER NODE 2 OR NODE 3
+								if (movie.update_year < 1980) {
+									node_3.query(delete_statement, movie.update_id, (err, results) => {
+										if (err) {
+											throw err;
+										}
+									})
+									node_2.query(insert_statement, move_values, (err, results) => {
+										if (err) {
+											throw err;
+										}
+									})
+									console.log("Updated Slave Nodes");
+
+								}
+								else if (movie.update_year >= 1980) {
+									node_2.query(delete_statement, movie.update_id, (err, results) => {
+										if (err) {
+											throw err;
+										}
+
+									})
+									node_3.query(insert_statement, move_values, (err, results) => {
+										if (err) {
+											throw err;
+										}
+									})
+
+									console.log("Updated Slave Nodes");
+								}
 								res.redirect('/');
 							}
 						  });
@@ -1103,6 +1166,28 @@ app.post('/delete', (req, res) => {
 						else {
 							console.log('NODE 1 transaction completed successfully.');
 							console.log('Successfully deleted data with id: ' + movie.id);
+							if (movie.year < 1980) {
+								node_2.query(statement, values, (err, results) => {
+									if (err){
+										console.log('Error deleting in node 2');
+										throw err;
+									}
+									else {
+										console.log('Replicated to Slave Nodes');
+									}
+								})
+							}
+							else {
+								node_3.query(statement, values, (err, results) => {
+									if (err){
+										console.log('Error deleting in node 3');
+										throw err;
+									}
+									else {
+										console.log('Replicated to Slave Nodes');
+									}
+								})
+							}
 							res.status(200).send();
 							return;
 						}
