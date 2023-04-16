@@ -1,8 +1,10 @@
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
+const dotenv = require('dotenv');
 const {node_1, node_2, node_3} = require('./mysql');
 const exphbs = require('express-handlebars');
+dotenv.config();
 
 const app = express();
 
@@ -11,6 +13,11 @@ app.set('view engine', 'hbs');
 
 app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: false }));
+
+
+node_1.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`);
+node_2.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`);
+node_3.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`);
 
 // Set up session middleware
 app.use(session({
@@ -22,6 +29,18 @@ app.use(session({
 
 app.use(async function(req, res, loadpage) {
 	console.log(req.url);
+	node_1.query('SELECT @@global.transaction_isolation;', (err, result) => {
+		if (err) console.log(err);
+		else console.log(result);
+	});
+	node_2.query('SELECT @@global.transaction_isolation;', (err, result) => {
+		if (err) console.log(err);
+		else console.log(result);
+	});
+	node_3.query('SELECT @@global.transaction_isolation;', (err, result) => {
+		if (err) console.log(err);
+		else console.log(result);
+	});
 	const promises = [];
 	
 	promises.push(new Promise ((resolve, reject) => {
