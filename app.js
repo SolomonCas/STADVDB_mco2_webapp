@@ -26,6 +26,9 @@ app.use(session({
 	saveUninitialized: true
   }));
 
+function delay(){
+	return new Promise((resolve) => setTimeout(resolve, 8000));
+}
 
 app.use(async function(req, res, loadpage) {
 	console.log(req.url);
@@ -349,7 +352,7 @@ app.get('/filter/:page', (req, res) => {
 		}
 		else{
 			console.log('NODE 1 transaction started.');
-			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, async(err, result) => {
 				if (err){
 					node_1.query('ROLLBACK', function() {
 						console.log('NODE 1 transaction rolled back.');
@@ -357,6 +360,10 @@ app.get('/filter/:page', (req, res) => {
 					});
 				}
 				else{
+					//Sleep
+					console.log("SLEEP 8 seconds");
+					await delay();
+					//Commit
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -508,7 +515,7 @@ app.post('/filter/:page', (req, res) => {
 		}
 		else{
 			console.log('NODE 1 transaction started.');
-			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, (err, result) => {
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${filter_attribute} ${filter_operator} ${filter_input}`, async(err, result) => {
 				if (err){
 					node_1.query('ROLLBACK', function() {
 						console.log('NODE 1 transaction rolled back.');
@@ -516,6 +523,10 @@ app.post('/filter/:page', (req, res) => {
 					});
 				}
 				else{
+					//Sleep
+					console.log("SLEEP 8 seconds");
+					await delay();
+					//Commit
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -669,7 +680,7 @@ app.get('/search/:page', (req, res) => {
 		}
 		else{
 			console.log('NODE 1 transaction started.');
-			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, async (err, result) => {
 				if (err){
 					node_1.query('ROLLBACK', function() {
 						console.log('NODE 1 transaction rolled back.');
@@ -677,6 +688,9 @@ app.get('/search/:page', (req, res) => {
 					});
 				}
 				else{
+					//Sleep
+					console.log("SLEEP 8 seconds");
+					await delay();
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -832,7 +846,7 @@ app.post('/search/:page', (req, res) => {
 		}
 		else{
 			console.log('NODE 1 transaction started.');
-			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, (err, result) => {
+			node_1.query(`SELECT COUNT(*) AS total FROM movies WHERE ${search_attribute} LIKE "%${search_input}%" ORDER BY ${search_attribute}`, async(err, result) => {
 				if (err){
 					node_1.query('ROLLBACK', function() {
 						console.log('NODE 1 transaction rolled back.');
@@ -840,6 +854,9 @@ app.post('/search/:page', (req, res) => {
 					});
 				}
 				else{
+					//Sleep
+					console.log("SLEEP 8 seconds");
+					await delay();
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -1012,7 +1029,7 @@ app.post('/insert', (req, res) => {
 
 					const statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL), COALESCE(NULLIF(?, ''), NULL))`;
 					const log_statement = `INSERT INTO movies (id, name, year, \`rank\`, genre, director_first_name, director_last_name) VALUES (${new_id}, \"${movie.name}\", ${movie.year}, COALESCE(NULLIF(\"${movie.rank}\", ''), NULL), COALESCE(NULLIF(\"${movie.genre}\", ''), NULL), COALESCE(NULLIF(\"${movie.director_first_name}\", ''), NULL), COALESCE(NULLIF(\"${movie.director_last_name}\", ''), NULL))`;
-					node_1.query(statement, values, (err, results) => {
+					node_1.query(statement, values, async (err, results) => {
 						if (err) {
 							node_1.query('ROLLBACK', function() {
 								console.log('NODE 1 transaction rolled back.');
@@ -1020,6 +1037,9 @@ app.post('/insert', (req, res) => {
 							});
 						}
 						else {
+							//Sleep
+							console.log("SLEEP 8 seconds");
+							await delay();
 							node_1.query('COMMIT', function(err) {
 								if (err) {
 									node_1.query('ROLLBACK', function() {
@@ -1263,7 +1283,7 @@ app.post('/update', (req, res) => {
 			else {
 				// ---------------------------------------------------------
 				console.log('NODE 1 transaction started.');
-				node_1.query(statement, values, (err, results) => {
+				node_1.query(statement, values, async(err, results) => {
 					if (err) {
 						node_1.query('ROLLBACK', function() {
 							console.log('NODE 1 transaction rolled back.');
@@ -1271,6 +1291,9 @@ app.post('/update', (req, res) => {
 						});
 					}
 					else {
+						//Sleep
+						console.log("SLEEP 8 seconds");
+						await delay();
 						node_1.query('COMMIT', function(err) {
 							if (err) {
 								node_1.query('ROLLBACK', function() {
@@ -1436,7 +1459,8 @@ app.post('/delete', (req, res) => {
 			}
 		}
 		else {
-			node_1.query(statement, values, (err, rows, fields) => {
+			// Node 1
+			node_1.query(statement, values, async (err, rows, fields) => {
 				if (err) {
 					node_1.query('ROLLBACK', function() {
 						console.log('NODE 1 transaction rolled back.');
@@ -1444,6 +1468,10 @@ app.post('/delete', (req, res) => {
 					});
 				}
 				else {
+					//Sleep
+					console.log("SLEEP 8 seconds");
+					await delay();
+					//Commit
 					node_1.query('COMMIT', function(err) {
 						if (err) {
 							node_1.query('ROLLBACK', function() {
