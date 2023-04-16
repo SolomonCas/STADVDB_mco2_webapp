@@ -20,16 +20,17 @@ app.use(session({
   }));
 
 
-  app.get('/', async (req, res) => {
+app.use(async function(req, res, loadpage) {
+	console.log(req.url);
 	const promises = [];
-	console.log("@/");
+	
 	promises.push(new Promise ((resolve, reject) => {
 		node_1.query(`SELECT * FROM logs`, async function(err, result) {
 			if (err) {
 			  console.log(err);
 			  resolve();
 			} else {
-			  console.log("REPLICATING DATA USING NODE 1");
+			  console.log("Reading Logs from Node 1");
 		
 			  const promises2 = [];
 		
@@ -96,7 +97,7 @@ app.use(session({
 				resolve();
 			} 
 			else {
-				console.log("REPLICATING DATA USING NODE 2");
+				console.log("Reading Logs from Node 2");
 		
 				for (let log of result) {
 					await new Promise((resolve, reject) => {
@@ -127,12 +128,17 @@ app.use(session({
 
 	Promise.all(promises)
 		.then(() => {
-			res.redirect('/1');
+			loadpage();
 		})
 		.catch((err) => {
 			console.log(err);
 			res.status(500).send('An error occurred');
 		});
+})
+
+app.get('/', async (req, res) => {
+	console.log("@/");
+	res.redirect('/1');
 });
 
 app.get('/:page', (req, res) => {
