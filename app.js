@@ -24,19 +24,20 @@ app.use(session({
 	const promises = [];
 	console.log("@/");
 	promises.push(new Promise ((resolve, reject) => {
-		node_1.query(`SELECT * FROM logs`, function(err, result) {
+		node_1.query(`SELECT * FROM logs`, async function(err, result) {
 			if (err) {
 			  console.log(err);
 			  resolve();
 			} else {
 			  console.log("REPLICATING DATA USING NODE 1");
 		
-			  
+			  const promises2 = [];
 		
 			  for (let log of result) {
+				console.log(log.sql_statement);
 				if (log.node == 2) {
 				
-					promises.push(new Promise((resolve, reject) => {
+					await new Promise((resolve, reject) => {
 						node_2.query(log.sql_statement, function(err) {
 							if (err) {
 								console.log(err);
@@ -55,12 +56,12 @@ app.use(session({
 								});
 							}
 						});
-				  	}));
+				  	})
 				} 
 
 				else {
 
-					promises.push(new Promise((resolve, reject) => {
+					await new Promise((resolve, reject) => {
 						node_3.query(log.sql_statement, function(err) {
 							if (err) {
 								console.log(err);
@@ -79,17 +80,17 @@ app.use(session({
 								});
 							}
 						});
-					}));
+					})
 				}
 			  }
-	  
+			  
 			  resolve();
 			}
-		  });
+		});
 	}));
 
 	promises.push(new Promise ((resolve, reject) => {
-		node_2.query(`SELECT * FROM logs`, function(err, result) {
+		node_2.query(`SELECT * FROM logs`, async function(err, result) {
 			if (err) {
 				console.log(err);
 				resolve();
@@ -98,7 +99,7 @@ app.use(session({
 				console.log("REPLICATING DATA USING NODE 2");
 		
 				for (let log of result) {
-					promises.push(new Promise((resolve, reject) => {
+					await new Promise((resolve, reject) => {
 						node_1.query(log.sql_statement, function(err) {
 							if (err) {
 								console.log(err);
@@ -117,7 +118,7 @@ app.use(session({
 								});
 							}
 						});
-					}));
+					})
 				}
 				resolve();
 			}	
