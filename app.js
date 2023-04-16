@@ -15,9 +15,7 @@ app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: false }));
 
 
-node_1.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`);
-node_2.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`);
-node_3.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`);
+
 
 // Set up session middleware
 app.use(session({
@@ -26,12 +24,27 @@ app.use(session({
 	saveUninitialized: true
   }));
 
-function delay(){
-	return new Promise((resolve) => setTimeout(resolve, 8000));
-}
+// function delay(){
+// 	return new Promise((resolve) => setTimeout(resolve, 8000));
+// }
 
 app.use(async function(req, res, loadpage) {
 	console.log(req.url);
+	node_1.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`, function(err){
+		if(err){
+			console.log(err);
+		}
+	});
+	node_2.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`, function(err){
+		if(err){
+			console.log(err);
+		}
+	});
+	node_3.query(`SET GLOBAL TRANSACTION ISOLATION LEVEL ${process.env.ISOLATIONLEVEL}`, function(err){
+		if(err){
+			console.log(err);
+		}
+	});
 	node_1.query('SELECT @@global.transaction_isolation;', (err, result) => {
 		if (err) console.log(err);
 		else console.log(result);
@@ -361,8 +374,8 @@ app.get('/filter/:page', (req, res) => {
 				}
 				else{
 					//Sleep
-					console.log("SLEEP 8 seconds");
-					await delay();
+					// console.log("SLEEP 8 seconds");
+					// await delay();
 					//Commit
 					node_1.query('COMMIT', function(err){
 						if(err){
@@ -523,9 +536,9 @@ app.post('/filter/:page', (req, res) => {
 					});
 				}
 				else{
-					//Sleep
-					console.log("SLEEP 8 seconds");
-					await delay();
+					// //Sleep
+					// console.log("SLEEP 8 seconds");
+					// await delay();
 					//Commit
 					node_1.query('COMMIT', function(err){
 						if(err){
@@ -689,8 +702,8 @@ app.get('/search/:page', (req, res) => {
 				}
 				else{
 					//Sleep
-					console.log("SLEEP 8 seconds");
-					await delay();
+					// console.log("SLEEP 8 seconds");
+					// await delay();
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -855,8 +868,8 @@ app.post('/search/:page', (req, res) => {
 				}
 				else{
 					//Sleep
-					console.log("SLEEP 8 seconds");
-					await delay();
+					// console.log("SLEEP 8 seconds");
+					// await delay();
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -1038,8 +1051,8 @@ app.post('/insert', (req, res) => {
 						}
 						else {
 							//Sleep
-							console.log("SLEEP 8 seconds");
-							await delay();
+							// console.log("SLEEP 8 seconds");
+							// await delay();
 							node_1.query('COMMIT', function(err) {
 								if (err) {
 									node_1.query('ROLLBACK', function() {
@@ -1292,8 +1305,8 @@ app.post('/update', (req, res) => {
 					}
 					else {
 						//Sleep
-						console.log("SLEEP 8 seconds");
-						await delay();
+						// console.log("SLEEP 8 seconds");
+						// await delay();
 						node_1.query('COMMIT', function(err) {
 							if (err) {
 								node_1.query('ROLLBACK', function() {
@@ -1469,8 +1482,8 @@ app.post('/delete', (req, res) => {
 				}
 				else {
 					//Sleep
-					console.log("SLEEP 8 seconds");
-					await delay();
+					// console.log("SLEEP 8 seconds");
+					// await delay();
 					//Commit
 					node_1.query('COMMIT', function(err) {
 						if (err) {
