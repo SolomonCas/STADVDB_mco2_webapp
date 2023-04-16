@@ -20,7 +20,7 @@ app.use(session({
   }));
 
 
-  app.get('/', (req, res) => {
+  app.get('/', async (req, res) => {
 	const promises = [];
 	console.log("@/");
 	promises.push(new Promise ((resolve, reject) => {
@@ -35,45 +35,51 @@ app.use(session({
 		
 			  for (let log of result) {
 				if (log.node == 2) {
-	  
-				  promises.push(new Promise((resolve, reject) => {
-					node_2.query(log.sql_statement, function(err) {
-					  if (err) {
-						  console.log(err);
-						  resolve();
-					  } else {
-						node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
-						  if (err) {
-							console.log(err);
-							resolve();
-						  } else {
-							console.log('SUCCESSFULLY REMOVE LOG IN NODE 1');
-							resolve();
-						  }
+				
+					promises.push(new Promise((resolve, reject) => {
+						node_2.query(log.sql_statement, function(err) {
+							if (err) {
+								console.log(err);
+								resolve();
+							} 
+							else {
+								node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
+									if (err) {
+										console.log(err);
+										resolve();
+									} 
+									else {
+										console.log('SUCCESSFULLY REMOVE LOG IN NODE 1');
+										resolve();
+									}
+								});
+							}
 						});
-					  }
-					});
-				  }));
-				} else {
-	  
-				  promises.push(new Promise((resolve, reject) => {
-					node_3.query(log.sql_statement, function(err) {
-					  if (err) {
-						  console.log(err);
-						  resolve();
-					  } else {
-						node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
-						  if (err) {
-							  console.log(err);
-							  resolve();
-						  } else {
-							console.log('SUCCESSFULLY REMOVE LOG IN NODE 1');
-							resolve();
-						  }
+				  	}));
+				} 
+
+				else {
+
+					promises.push(new Promise((resolve, reject) => {
+						node_3.query(log.sql_statement, function(err) {
+							if (err) {
+								console.log(err);
+								resolve();
+							} 
+							else {
+								node_1.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
+									if (err) {
+										console.log(err);
+										resolve();
+									} 
+									else {
+										console.log('SUCCESSFULLY REMOVE LOG IN NODE 1');
+										resolve();
+									}
+								});
+							}
 						});
-					  }
-					});
-				  }));
+					}));
 				}
 			  }
 	  
@@ -85,50 +91,48 @@ app.use(session({
 	promises.push(new Promise ((resolve, reject) => {
 		node_2.query(`SELECT * FROM logs`, function(err, result) {
 			if (err) {
-			  console.log(err);
-			  resolve();
+				console.log(err);
+				resolve();
 			} 
 			else {
 				console.log("REPLICATING DATA USING NODE 2");
 		
-			  
-		
 				for (let log of result) {
-
 					promises.push(new Promise((resolve, reject) => {
 						node_1.query(log.sql_statement, function(err) {
 							if (err) {
 								console.log(err);
 								resolve();
-							} else {
-							node_2.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
-								if (err) {
-									console.log(err);
-									resolve();
-								} 
-								else {
-									console.log('SUCCESSFULLY REMOVE LOG IN NODE 2');
-									resolve();
-								}
-							});
+							} 
+							else {
+								node_2.query(`DELETE FROM logs WHERE idlogs=${log.idlogs}`, function(err) {
+									if (err) {
+										console.log(err);
+										resolve();
+									} 
+									else {
+										console.log('SUCCESSFULLY REMOVE LOG IN NODE 2');
+										resolve();
+									}
+								});
 							}
 						});
 					}));
 				}
 				resolve();
 			}	
-		  });
+		});
 	}));
 
 	Promise.all(promises)
-		  .then(() => {
+		.then(() => {
 			res.redirect('/1');
-		  })
-		  .catch((err) => {
+		})
+		.catch((err) => {
 			console.log(err);
 			res.status(500).send('An error occurred');
-		  });
-  });
+		});
+});
 
 app.get('/:page', (req, res) => {
 	console.log("@/:page");
