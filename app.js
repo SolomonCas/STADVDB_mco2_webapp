@@ -24,9 +24,9 @@ app.use(session({
 	saveUninitialized: true
   }));
 
-// function delay(){
-// 	return new Promise((resolve) => setTimeout(resolve, 8000));
-// }
+function delay(){
+ 	return new Promise((resolve) => setTimeout(resolve, 4000));
+}
 
 app.use(async function(req, res, loadpage) {
 	console.log(req.url);
@@ -374,8 +374,8 @@ app.get('/filter/:page', (req, res) => {
 				}
 				else{
 					//Sleep
-					// console.log("SLEEP 8 seconds");
-					// await delay();
+					console.log("SLEEP 4 seconds");
+					await delay();
 					//Commit
 					node_1.query('COMMIT', function(err){
 						if(err){
@@ -537,8 +537,8 @@ app.post('/filter/:page', (req, res) => {
 				}
 				else{
 					// //Sleep
-					// console.log("SLEEP 8 seconds");
-					// await delay();
+					console.log("SLEEP 4 seconds");
+					await delay();
 					//Commit
 					node_1.query('COMMIT', function(err){
 						if(err){
@@ -702,8 +702,8 @@ app.get('/search/:page', (req, res) => {
 				}
 				else{
 					//Sleep
-					// console.log("SLEEP 8 seconds");
-					// await delay();
+					console.log("SLEEP 4 seconds");
+					await delay();
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -868,8 +868,8 @@ app.post('/search/:page', (req, res) => {
 				}
 				else{
 					//Sleep
-					// console.log("SLEEP 8 seconds");
-					// await delay();
+					console.log("SLEEP 4 seconds");
+					await delay();
 					node_1.query('COMMIT', function(err){
 						if(err){
 							node_1.query('ROLLBACK', function() {
@@ -1051,8 +1051,8 @@ app.post('/insert', (req, res) => {
 						}
 						else {
 							//Sleep
-							// console.log("SLEEP 8 seconds");
-							// await delay();
+							console.log("SLEEP 4 seconds");
+							await delay();
 							node_1.query('COMMIT', function(err) {
 								if (err) {
 									node_1.query('ROLLBACK', function() {
@@ -1305,8 +1305,8 @@ app.post('/update', (req, res) => {
 					}
 					else {
 						//Sleep
-						// console.log("SLEEP 8 seconds");
-						// await delay();
+						console.log("SLEEP 4 seconds");
+						await delay();
 						node_1.query('COMMIT', function(err) {
 							if (err) {
 								node_1.query('ROLLBACK', function() {
@@ -1482,8 +1482,8 @@ app.post('/delete', (req, res) => {
 				}
 				else {
 					//Sleep
-					// console.log("SLEEP 8 seconds");
-					// await delay();
+					console.log("SLEEP 8 seconds");
+					await delay();
 					//Commit
 					node_1.query('COMMIT', function(err) {
 						if (err) {
